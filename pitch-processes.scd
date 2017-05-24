@@ -61,7 +61,6 @@ Proto {
 	};
 	~asPattern = {
 		Pchain(
-			// BPStream(\voicerPostArgs),
 			BPStream(\override),
 			BPStream(\voicerOverride),
 			BPStream(\base)
@@ -112,7 +111,8 @@ make: { |name|
 		userPost: Pfunc { |ev| ev },
 		bindVC: Func(\bindVC).v,
 		modeKeys: #[mode, root, scale, tuning, octave],
-		setDefault: { |key, value| ~defaults.setDefault(key, value) }
+		setDefault: { |key, value| ~defaults.setDefault(key, value) },
+		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
 }, type: \bp) => Fact(\melBP);
 
@@ -161,22 +161,12 @@ PR(\arpeg1).clone {
 			},
 			#[\dur, \length, \gate], MicRh(inEvent[\microRhythm])
 				.asPattern(~notePattern, inEvent),
-			\mode, (Pfunc({
-				~currentChord.modeForEvent(inEvent)
-			})),
+			// \mode, (Pfunc({ ~currentChord.modeForEvent(inEvent) })),
+			\mode, BPStream(\mode),
 			\accent, Pseq([inEvent[\top][\accent] ?? { false }, Pn(false, inf)]),
 			\acc, Pkey(\accent).collect(_.asInteger)
 		);
-			// note, argpairs will reset every chord
-			// if you want a stream not to reset, use BPStream in the argPairs array
-		argPairs = ~argPairs.(inEvent);		// if simple array, this will have no effect
-		case
-		{ argPairs.isPattern or: { argPairs.isKindOf(Routine) } } {
-			out = Pchain(argPairs, out)
-		}
-		{ argPairs.size > 0 } {
-			out = Pbind(\argKeys, argPairs[0, 2..], *argPairs) <> out;
-		};
+		out = Pchain(BPStream(\defaults), out);
 		~asPatternHook.(out) ?? { out };
 	};
 	~superPrepareSequence = ~prepareSequence;
@@ -196,11 +186,14 @@ PR(\arpeg1).clone {
 		}
 		?? { \default }
 	};
+	~modeKeys = #[mode, root, scale, tuning, octave];
+	~setDefault = { |key, value| ~defaults.setDefault(key, value) };
 } => PR(\arpeg1LC);
 
 (
 bassID: \bass,
 mode: nil,
+octave: 5,
 chords: \ch,
 child: \arpeg1LC,
 prKey: \chTop,
@@ -215,7 +208,17 @@ make: { |name|
 	buf = MBM(0)[~chords];
 	mode = ~mode ?? { buf.tryPerform(\properties).tryPerform(\at, \mode) ?? { \default } };
 	p = \newCh.eval(name, ~child, ~prKey, buf, nil, 4, ~micro, ~arpeg, nil, mode);
-	p.child.argPairs = ~argPairs;
+	p.child.defaults = PR(\clDefaults).copy.prep((), name);
+	p.defaults = PR(\clDefaults).copy.prep((octave: ~octave), name);
+	p.modeKeys = #[mode, root, scale, tuning, octave];
+	p.setDefault = { |key, value|
+		~child.setDefault(key, value);
+		~defaults.setDefault(key, value);
+	};
+	p.setVoicerParms = { |parms, post|
+		~defaults.setVoicerParms(parms, post);
+		~child.defaults.setVoicerParms(parms, post);
+	};
 	p.v.import((abstractLiveCode: #[setPattern, valueForParm, parmIsPitch, beatsPerBar,
 		setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_]));
 	p.defaultParm = \note;
@@ -300,7 +303,6 @@ make: { |name|
 	};
 	p.child.event.collIndex = name;
 	p.child.event.eventKey = ~eventKey ?? { \voicerArtic };
-	// p.child.asPatternHook = { |pat| pat.collect(Func(\voicer)) };
 	p.child.fitFunc = \chordFitInt;
 	p.child.makeChordPattern = {
 		var lastTop = 0, firstArg = { |val| val };
@@ -321,7 +323,10 @@ make: { |name|
 	p.bindVC = { |vc|
 		var temp;
 		if(vc.exists) {
-			~child.use { ~argPairs = vc.env[\argPairs].value(vc) };
+			~setVoicerParms.(
+				vc.env[\argPairs].value(vc),
+				vc.env[\postArgs].value(vc)
+			);
 			temp = vc.env[\extraChildParms].value(vc);
 			if(temp.notNil) {
 				temp.keysValuesDo { |key, value|
@@ -386,7 +391,6 @@ make: { |name|
 				}
 				// it is ok to return nil here b/c BP's collect funcs turn it into a Rest()
 			}),
-			// acc: ($.: 0, $-: 1),
 			acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/),
 			skip: ($0: 0, $1: 1, $2: 2, $3: 3, $4: 4, $5: 5),
 		),
@@ -427,11 +431,6 @@ make: { |name|
 					ev[\sustain]
 				} {
 					ev[\dur] * ev[\legato]
-					// if(ev[\legato] < 1) {
-					// 	ev[\dur] * 0.8
-					// } {
-					// 	ev[\dur] * 2.5
-					// }
 				}
 			},
 			\accent, Pfunc { |ev|
@@ -447,7 +446,10 @@ make: { |name|
 				ev = ~argPairsStream.next(ev);
 			};
 			ev
-		};
+		},
+		modeKeys: #[mode, root, scale, tuning, octave],
+		setDefault: { |key, value| ~defaults.setDefault(key, value) },
+		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
 	PR(\abstractLiveCode).canWrap = false;
 	BP(name).import((chTop: \acceptMIDIBuf));
@@ -482,7 +484,6 @@ make: { |name|
 			chords => BP(name);
 		};
 	};
-	BP(name).v.import((melBP: #[modeKeys, setDefault]));
 	BP(name)
 },
 type: \bp) => Fact(\arpegBP);
@@ -491,12 +492,10 @@ type: \bp) => Fact(\arpegBP);
 { |vc|
 	var temp, chain;
 	if(vc.exists) {
-		if(~defaults.respondsTo(\setVoicerParms)) {
-			~defaults.setVoicerParms(
-				vc.env[\argPairs].value(vc),
-				vc.env[\postArgs].value(vc)
-			);
-		};
+		~setVoicerParms.(
+			vc.env[\argPairs].value(vc),
+			vc.env[\postArgs].value(vc)
+		);
 		if(~child.notNil) {
 			temp = vc.env[\extraChildParms].value(vc);
 			if(temp.notNil) {
