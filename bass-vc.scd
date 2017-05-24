@@ -46,7 +46,7 @@ make: { |name|
 		w = [w, 1.0 - w];
 		buf.sine1Msg(Array.fill(20, { #[0, 1].wchoose(w) }).putFirst(1))
 	});
-	out = /*MonoPorta*/Voicer(1, \fmBass, [cbuf: ~cbuf.bufnum, mbuf: ~mbufs.first.bufnum], target: ~target);
+	out = /*MonoPorta*/Voicer(2, \fmBass, [cbuf: ~cbuf.bufnum, mbuf: ~mbufs.first.bufnum], target: ~target);
 	out.mapGlobal(\index, nil, 7, #[0.1, 100, \exp]);
 	out.mapGlobal(\indexEgAmt, nil, 0, [0, 20, 3]);
 	out
@@ -80,7 +80,7 @@ initLevel: -10.dbamp,
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master);
-	out = /*MonoPorta*/Voicer(1, \pulseBass, [freqlag: 0.08]);
+	out = /*MonoPorta*/Voicer(2, \pulseBass, [freqlag: 0.08]);
 	// out.portaTime = 0.08;
 	out.mapGlobal(\ffreq, nil, 261.4, \freq);
 	out.mapGlobal(\fDecay, nil, 0.17, [0, 2, 3]);
@@ -124,7 +124,7 @@ argPairs: [amp: 0.5],
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master);
-	out = /*MonoPorta*/Voicer(1, \distBass, args: [
+	out = /*MonoPorta*/Voicer(2, \distBass, args: [
 		freqRand: 1.0025, startRq: 1, endRq: 1, rqDecay: 1, freqlag: 0.08
 	], target: ~target);
 	// out.portaTime = 0.08;

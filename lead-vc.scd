@@ -80,7 +80,7 @@ make: { |name|
 	~cbuf = Buffer.alloc(s, 1024, 1, completionMessage: { |buf| buf.sine1Msg(#[1]) });
 	~mbuf = Buffer.alloc(s, 1024, 1, completionMessage: { |buf| buf.sine1Msg(#[1]) });
 
-	out = /*MonoPorta*/Voicer(1, \fmHarms, [
+	out = /*MonoPorta*/Voicer(2, \fmHarms, [
 		cbuf: ~cbuf.bufnum, mbuf: ~mbuf.bufnum,
 		fund: 77.78,
 	], target: ~target);
