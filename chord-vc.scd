@@ -140,3 +140,48 @@ type: \vc, defaultName: \klc/*, defaultBP: \ch*/) => Fact(\klankVC);
 );
 
 
+(
+SynthDef(\fmpad, { |out, gate = 1, freq = 440, freqlag = 0.08,
+	index = 1, ratio = 1, acc = 0, accMul = 3, mbuf, cbuf,
+	detun = 1.01, t_rerand = 1,
+	panCenter = 0, panWidth = 0.6, amp = 0.5,
+	atk = 0.08, dcy = 0.3, sus = 0.6, rel = 1, modAmt = 0, modDcy = 0.5|
+	var n = 8,
+	r_detun = detun.reciprocal,
+	detunes = Array.fill(n, { TRand.kr(0, 1, t_rerand).linexp(0, 1, r_detun, detun) }),
+	indexEg = EnvGen.kr(Env([0, acc * modAmt, 0], [atk, modDcy], -3), gate),
+	accent = accMul + 1,
+	laggedFreq = Lag.kr(freq, freqlag),
+	mods = Osc.ar(mbuf, laggedFreq * ratio * detunes, mul: index * accent * (1 + indexEg)),
+	cars = Osc.ar(cbuf, laggedFreq * detunes * (1 + mods)),
+	width = min(panWidth, 1.0 - abs(panCenter)),
+
+	sig = Splay.ar(cars, width, amp, panCenter),
+	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
+
+	Out.ar(out, sig * (eg * amp));
+}).add;
+
+(
+keys: #[master, rvbmc],
+initLevel: -12.dbamp,
+rvbLevel: -5.3.dbamp,
+argPairs: [amp: 0.5],
+make: { |name|
+	var out;
+	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		chan.newPostSend(~rvbmc, ~rvbLevel);
+	});
+
+	~mbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg((1..4).reciprocal) });
+	~cbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(#[1, 1, 1]) });
+
+	out = Voicer(20, \fmpad, [mbuf: ~mbuf.bufnum, cbuf: ~cbuf.bufnum, amp: 0.5], target: ~target);
+	out.mapGlobal(\index, nil, 2, [0.1, 10, \exp]);
+	out.mapGlobal(\ratio, nil, 5, SnapControlSpec(1, 10, \lin, 1).snap_(0.15));
+	out.mapGlobal(\modAmt, nil, 1.5, [0, 3]);
+	out
+},
+free: { [~target, ~cbuf, ~mbuf].free },
+type: \vc) => Fact(\fmpadVC);
+);
