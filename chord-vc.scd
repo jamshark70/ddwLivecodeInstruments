@@ -1,3 +1,13 @@
+Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay, speed, depth, ph_diff, preamp;
+	var in, sig, mods;
+	in = In.ar(bus, numInChan) * preamp;
+	mods = { |i|
+		SinOsc.kr(speed * rrand(0.9, 1.1), ph_diff * i, depth, predelay);
+	} ! (numDelays * numOutChan);
+	sig = DelayC.ar(in, 0.5, mods);
+	Mix(sig.clump(numOutChan))
+}, [\audiobus, \numChannels, \numChannels, \numChannels, [0.0001, 0.2, \exponential, 0, 0.001], [0.001, 10, \exponential], [0.0001, 0.25, \exponential], [0, 2*pi], [0.1, 10, \exp, 0, 1]]);
+
 (
 {
 	var makeSynth = { |name, oscfunc, n(6)|
@@ -184,4 +194,51 @@ make: { |name|
 },
 free: { [~target, ~cbuf, ~mbuf].free },
 type: \vc) => Fact(\fmpadVC);
+);
+
+
+(
+SynthDef(\fmbrass, { |out, freq = 220, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbuf,
+	freqlag = 0.1, detun = 1.008, panCenter = 0, panWidth = 1, acc = 0, accAmt = 5,
+	ratio = 1, index = 1, modEgAmt = 1.96, modAtk = 0.0511, modDcy = 0.0793|
+	var n = 6;
+	var modEg = EnvGen.kr(Env([0, (acc * accAmt) + modEgAmt, 0], [modAtk, modDcy], -2), t_gate),
+	laggedFreq = Lag.kr(freq, freqlag),
+	randFreq = Array.fill(n, { laggedFreq * (detun ** Rand(-1.0, 1.0)) }),
+	mod = Osc.ar(mbuf, randFreq * ratio, mul: index * (1 + modEg)),
+	car = Osc.ar(cbuf, randFreq * (1 + mod), mul: amp),
+	eg = EnvGen.kr(Env.adsr(0.1, 0.3, 0.5, 0.2), gate, doneAction: 2);
+	car = Splay.ar(car, panWidth, center: panCenter);
+	Out.ar(out, car * eg);
+}).add;
+
+(
+keys: #[master, rvbmc],
+initLevel: -12.dbamp,
+rvbLevel: -1.dbamp,
+argPairs: [amp: 0.25],
+make: { |name|
+	var out;
+	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		MultiEQ.new(2, \eq, 279.743, -3.759.dbamp, 1, \eq, 10341.84, 3.759.dbamp, 1).play(chan);
+		~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 3, 0.013676047024487, 0.24669302064117, 0.0076241645277023, 2.0019953184641, 0.7290294928589]);
+		~chorus.doWhenPlaying {
+			~chorus.synth.moveToTail(chan.effectgroup);
+		};
+		chan.newPostSend(~rvbmc, ~rvbLevel);
+	});
+	~cbuf = Buffer.alloc(s, 4096, 1, completionMessage: { |buf|
+		buf.sine1Msg((1..5).reciprocal.squared)
+	});
+	~mbuf = Buffer.alloc(s, 4096, 1, completionMessage: { |buf| buf.sine1Msg(#[1]) });
+	out = Voicer(25, \fmbrass, [
+		cbuf: ~cbuf.bufnum, mbuf: ~mbuf.bufnum
+	], target: ~target);
+	out.mapGlobal(\index, nil, 1.25, #[0.1, 20, \exp]);
+	out.mapGlobal(\modEgAmt, nil, 0.81, #[0, 10]);
+	out.mapGlobal(\accAmt, nil, 2.5, #[0, 10]);
+	out
+},
+free: { [~target, ~cbuf, ~mbuf].free },
+type: \vc) => Fact(\fmbrassVC);
 );
