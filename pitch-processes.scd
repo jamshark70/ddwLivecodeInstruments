@@ -1,5 +1,11 @@
 // some reusable pitch-playing processes
 
+// if true: chord/arpegBP factories prefer mode stored in MIDIRecBuf properties
+// if false: chord/arpegBP factories prefer \default mode
+if(Library.at(\clUseBufMode).isNil) {
+	Library.put(\clUseBufMode, false);
+};
+
 // defaults handling is quite complex
 // proc events can be an event or a pattern
 // voicer argPairs can override
@@ -206,7 +212,13 @@ make: { |name|
 	BP(name).free;
 
 	buf = MBM(0)[~chords];
-	mode = ~mode ?? { buf.tryPerform(\properties).tryPerform(\at, \mode) ?? { \default } };
+	mode = ~mode ?? {
+		if(Library.at(\clUseBufMode) == true) {
+			buf.tryPerform(\properties).tryPerform(\at, \mode) ?? { \default }
+		} {
+			\default
+		};
+	};
 	p = \newCh.eval(name, ~child, ~prKey, buf, nil, 4, ~micro, ~arpeg, nil, mode);
 	p.child.defaults = PR(\clDefaults).copy.prep((), name);
 	p.defaults = PR(\clDefaults).copy.prep((octave: ~octave), name);
@@ -478,7 +490,13 @@ make: { |name|
 	if(MBM.exists(0)) {
 		chords = MBM(0)[~chords];
 		if(chords.notNil) {
-			mode = ~mode ?? { chords.tryPerform(\properties).tryPerform(\at, \mode) ?? { \default } };
+			mode = ~mode ?? {
+				if(Library.at(\clUseBufMode) == true) {
+					chords.tryPerform(\properties).tryPerform(\at, \mode) ?? { \default }
+				} {
+					\default
+				};
+			};
 			BP(name).event[\mode] = mode;
 			BP(name).child[\mode] = mode;
 			chords => BP(name);
@@ -515,3 +533,16 @@ type: \bp) => Fact(\arpegBP);
 		"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
 	};
 } => Func(\bindVC);
+
+// make some modes available in all 12 keys
+(maj: \major, dor: \dorian, phr: \phrygian, lyd: \lydian, mixo: \mixolydian, min: \minor, loc: \locrian)
+.keysValuesDo { |postfix, scale|
+	scale = Scale.at(scale);
+	#["c", ["cs", "db"], "d", ["ds", "eb"], "e", "f", ["fs", "gb"], "g", ["gs", "ab"], "a", ["as", "bb"], "b"]
+	.do { |rootStr, root|
+		if(rootStr.isString) { rootStr = [rootStr] };
+		rootStr.do { |rootName|
+			ModalSpec(scale.semitones, 12, root) => Mode((rootName ++ postfix).asSymbol);
+		};
+	};
+};
