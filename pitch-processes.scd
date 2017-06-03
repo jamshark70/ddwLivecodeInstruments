@@ -81,7 +81,9 @@ Proto {
 bassID: nil,
 mode: \default,
 octave: 5,
+leadTime: 0,
 make: { |name|
+	var leadTime = ~leadTime;
 	BP(name).free;
 	PR(\abstractLiveCode).chuck(BP(name), nil, (
 		event: (eventKey: \default, type: \voicerArtic),
@@ -99,12 +101,14 @@ make: { |name|
 			Plazy { BPStream(\voicerPostArgs, envir: ~defaults) },
 			BPStream(\userPost),
 			Pfunc { |ev|
-				var mode;
+				var mode, bassID;
 				if(ev.isRest.not) {
 					mode = ev[\mode].asMode;
 					ev[\freq] = mode.cps(ev[\degree] + (ev[\octave] * mode.scale.size));
 					if(~bassID.notNil) {
-						Library.put(~bassID, ev[\degree] % mode.scale.size)
+						Library.put(~bassID, ev[\degree] % mode.scale.size);
+						bassID = ~bassID;
+						thisThread.clock.sched(0, { BP.changed(bassID, ev) });
 					};
 					if(ev[\accent].isNil) {
 						ev[\accent] = ev[\acc].notNil and: { ev[\acc] > 0 };
@@ -120,6 +124,13 @@ make: { |name|
 		setDefault: { |key, value| ~defaults.setDefault(key, value) },
 		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
+	// bassID means, this process is driving other processes' harmony generation
+	// so leadTime should be > 0
+	if(~bassID.notNil) {
+		leadTime = max(leadTime, 0.05);
+	};
+	BP(name).leadTime = ~leadTime;
+	BP(name)
 }, type: \bp) => Fact(\melBP);
 
 
@@ -413,19 +424,43 @@ make: { |name|
 			\sustain, 0, \legato, 0, \skip, 2,
 			\mode, Pfunc { ~child[\mode] ?? { \default } },
 		), name),
+		bassChanged: false,
+		update: { |obj, changer ... args|
+			if((changer == ~bassID)) {
+				~bassChanged = true;
+			};
+		},
+		bassID_: { |bassID|
+			if(bassID.notNil) {
+				BP.addDependant(currentEnvironment);
+			} {
+				BP.removeDependant(currentEnvironment);
+			};
+			~bassID = bassID;
+			currentEnvironment
+		},
 		postDefaults: Pbind(
 			\nextChord, Pfunc { |ev|
-				var parentEvent;
-				if(ev[\nextChord] or: { ~chordNotes.isNil }) {
+				var parentEvent,
+				nextChord = ev[\nextChord] or: { ~chordNotes.isNil };
+				if(~bassChanged or: { nextChord }) {
 					parentEvent = (top: ev[\top], delta: ev[\dur], length: inf,
 						arpegType: \block, microRhythm: \blockFollow,
 						// these, fix later
-						bassID: ~bassID, updateOnBass: false,
+						bassID: ~bassID, updateOnBass: true,
 						convertTopFunc: \convertMode,
 						mode: ev[\mode]
 					);
-					~child.nextNoteStream(parentEvent);
+					if(nextChord) {
+						~child.nextNoteStream(parentEvent);
+					} {
+						~child.updateBass(parentEvent, ~bassID);
+					};
+					~bassChanged = false;
 					~chordNotes = ~child.currentChord.lastFitNotes;
+				}
+				{ ~bassChanged } {
+
 				};
 				ev[\nextChord]
 			},
@@ -466,7 +501,7 @@ make: { |name|
 	PR(\abstractLiveCode).canWrap = false;
 	BP(name).import((chTop: \acceptMIDIBuf));
 	BP(name).child.fitFunc = ~fit;
-	BP(name).bassID = ~bass;
+	BP(name).bassID = ~bassID;
 	BP(name).bindVC = { |vc|
 		var temp;
 		if(vc.exists) {
