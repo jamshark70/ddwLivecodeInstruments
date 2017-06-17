@@ -86,9 +86,9 @@ make: { |name|
 	out.mapGlobal(\fDecay, nil, 0.17, [0, 2, 3]);
 	out.mapGlobal(\fegAmt, nil, 5, [0, 5]);
 	out.mapGlobal(\freqRand, nil, 1.0025, [1, 1.01, \exp]);
-	out.mapGlobal(\startRq, nil, 1, \myrq);
-	out.mapGlobal(\endRq, nil, 1, \myrq);
-	out.mapGlobal(\rqDecay, nil, 0, [0, 2, 3]);
+	// out.mapGlobal(\startRq, nil, 1, \myrq);
+	// out.mapGlobal(\endRq, nil, 1, \myrq);
+	// out.mapGlobal(\rqDecay, nil, 0, [0, 2, 3]);
 	out
 },
 free: { ~target.free },
