@@ -164,13 +164,13 @@ SynthDef(\pulseLead, { |out, gate = 1, t_gate, amp = 0.1,
 
 (
 keys: #[master, shortrvbmc],
-initLevel: -12.dbamp,
+initLevel: -5.6.dbamp,
 rvbLevel: -0.948.dbamp,
 argPairs: [amp: 0.5],
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
-		chan.newPostSend(~rvbmc, ~rvbLevel);
+		chan.newPostSend(~shortrvbmc, ~rvbLevel);
 	});
 
 	out = Voicer(2, \pulseLead, target: ~target);

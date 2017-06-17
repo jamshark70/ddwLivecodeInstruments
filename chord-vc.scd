@@ -36,7 +36,7 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 
 	(
 		keys: #[master, rvbmc],
-		initLevel: -12.dbamp,
+		initLevel: -4.8.dbamp, // -12.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \pulsepluck,
 		argPairs: [accAmt: 5],
@@ -91,6 +91,7 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 keys: #[master, rvbmc],
 initLevel: -13.5.dbamp,
 rvbLevel: -2.42.dbamp,
+eventKey: \voicerNote,
 bufData: {
 	// Pink noise == 1/f noise <-- Voss algorithm == Pvoss
 	// Random generation will have DC offset.

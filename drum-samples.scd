@@ -21,7 +21,7 @@ available: (
 		bpname: \dk,
 		// path: "deep_dance_kick_3.aif",
 		path: "round_808_kick.aif",
-		level: -6.8.dbamp,
+		level: -9.dbamp, // -6.8.dbamp,
 		rvbLevel: nil,
 		fx: { |chan|
 			~eq = MultiEQ(2,
@@ -115,7 +115,7 @@ available: (
 	pitchsnr: (
 		bpname: \psn,
 		path: "metal-sd4.wav",
-		level: -7.dbamp,
+		level: -9.23.dbamp, // -7.dbamp,
 		rvbChan: \rvbmc,  // alt: \shortrvbmc
 		rvbLevel: -1.dbamp,  // alt: -3.537.dbamp
 		pan: 0.3,
@@ -405,7 +405,7 @@ available: (
 			"cuts-through-it-ohh.aif"
 		],
 		bufStart: #[0, 0],
-		level: -28.2.dbamp,
+		level: -31.6.dbamp, // -28.2.dbamp,
 		rvbChan: \shortrvbmc,
 		rvbLevel: -12.8.dbamp,
 		pan: -0.3,
