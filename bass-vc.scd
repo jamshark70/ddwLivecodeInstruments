@@ -18,7 +18,7 @@ SynthDef(\fmBass, { |out, freq = 440, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbu
 
 (
 keys: #[master],
-initLevel: 0.75,
+initLevel: -2.4.dbamp, // 0.75,
 argPairs: Pbind(
 	\bufmod, Pwhite(0, 10.999, inf),
 	\amp, 0.5,
@@ -47,7 +47,7 @@ make: { |name|
 		buf.sine1Msg(Array.fill(20, { #[0, 1].wchoose(w) }).putFirst(1))
 	});
 	out = /*MonoPorta*/Voicer(2, \fmBass, [cbuf: ~cbuf.bufnum, mbuf: ~mbufs.first.bufnum], target: ~target);
-	out.mapGlobal(\index, nil, 7, #[0.1, 100, \exp]);
+	out.mapGlobal(\index, nil, 0.42, #[0.1, 100, \exp]);
 	out.mapGlobal(\indexEgAmt, nil, 0, [0, 20, 3]);
 	out
 },
@@ -76,11 +76,11 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 
 (
 keys: #[master],
-initLevel: -10.dbamp,
+initLevel: -5.6.dbamp,
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master);
-	out = /*MonoPorta*/Voicer(2, \pulseBass, [freqlag: 0.08]);
+	out = /*MonoPorta*/Voicer(2, \pulseBass, [freqlag: 0.08], target: ~target);
 	// out.portaTime = 0.08;
 	out.mapGlobal(\ffreq, nil, 261.4, \freq);
 	out.mapGlobal(\fDecay, nil, 0.17, [0, 2, 3]);
