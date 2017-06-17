@@ -66,7 +66,7 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 	widths = Array.fill(numOscs, {
 		LFDNoise3.kr(widthModRate * ExpRand(lowRateRand, widthModRand), widthRand, widthCenter)
 	}),
-	sig = Mix(Pulse.ar(Lag.kr(freq * fRand, freqlag), widths)),  // randomizing on slur is lagged too
+	sig = Mix(Pulse.ar(Lag.kr(freq * fRand * 0.5, freqlag), widths)),  // randomizing on slur is lagged too
 	feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
 	rqeg = EnvGen.kr(Env([startRq, endRq], [rqDecay], rqCurve * sign(endRq - startRq)), gate),
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
