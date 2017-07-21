@@ -11,7 +11,7 @@
 } => Func(\drum);
 
 (
-keys: #[submix, rvbmc, shortrvbmc],
+keys: #[master, rvbmc, shortrvbmc],
 dir: thisProcess.nowExecutingPath.dirname +/+ "samples",
 available: (
 	/** Kicks **/
@@ -179,7 +179,7 @@ make: { |name|
 		available: ~available,
 		initLevel: ~initLevel,
 		rvbLevel: ~rvbLevel,
-		submix: ~submix,
+		master: ~master,
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
 		userprep: {
@@ -195,7 +195,7 @@ make: { |name|
 			if(~drumID.size == 0) {
 				Error("drumsetBP: Please supply the names of existing BPs").throw;
 			};
-			~bpsubmix = MixerChannel(~collIndex, s, 2, 2, ~initLevel, ~pan ? 0, outbus: ~submix);
+			~bpsubmix = MixerChannel(~collIndex, s, 2, 2, ~initLevel, ~pan ? 0, outbus: ~master);
 			~loadDrums.();
 		},
 		userfree: {
@@ -323,7 +323,7 @@ make: { |name|
 
 /** Hats **/
 (
-keys: #[submix, shortrvbmc],
+keys: #[master, shortrvbmc],
 dir: thisProcess.nowExecutingPath.dirname +/+ "samples",
 available: (
 	// Tight, thin
@@ -405,7 +405,7 @@ available: (
 			"cuts-through-it-ohh.aif"
 		],
 		bufStart: #[0, 0],
-		level: -31.6.dbamp, // -28.2.dbamp,
+		level: -18.dbamp, // -31.6.dbamp, // -28.2.dbamp,
 		rvbChan: \shortrvbmc,
 		rvbLevel: -12.8.dbamp,
 		pan: -0.3,
@@ -424,10 +424,11 @@ available: (
 		postDefaults: {
 			Pbind(
 				\time, min(BPStream(\maxTime), Pkey(\time)),
-				\instrument, Pindex(#[bufGrainPan, bufGrainPan2], Pkey(\bufIndex))
+				\instrument, Pindex(#[bufGrainPan, bufGrainPan2], Pkey(\bufIndex)),
+				\amp, BPStream(\amp)
 			)
 		},
-		extras: (maxTime: 0.1)
+		extras: (maxTime: 0.1, amp: 0.03)
 	),
 	// Metallic-buzzy
 	// Realistic?
@@ -441,7 +442,7 @@ make: { |name|
 		available: ~available,
 		initLevel: ~initLevel,
 		rvbLevel: ~rvbLevel,
-		submix: ~submix,
+		master: ~master,
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
 		userprep: {
@@ -452,7 +453,7 @@ make: { |name|
 				)).throw;
 			};
 			~chan = MixerChannel(~collIndex, s, 2, 2, thing[\level], thing[\pan] ? 0,
-				outbus: ~submix, completionFunc: { |chan|
+				outbus: ~master, completionFunc: { |chan|
 					thing[\fx].value(chan);
 					if(thing[\rvbLevel].notNil) {
 						chan.newPostSend((thing[\rvbChan] ?? { \rvbmc }).envirGet, thing[\rvbLevel]);
