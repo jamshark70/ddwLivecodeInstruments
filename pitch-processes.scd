@@ -122,7 +122,11 @@ make: { |name|
 		userPost: Pfunc { |ev| ev },
 		bindVC: Func(\bindVC).v,
 		modeKeys: #[mode, root, scale, tuning, octave],
-		setDefault: { |key, value| ~defaults.setDefault(key, value) },
+		setDefault: { |... pairs|
+			pairs.pairsDo { |key, value|
+				~defaults.setDefault(key, value)
+			};
+		},
 		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
 	// bassID means, this process is driving other processes' harmony generation
@@ -205,7 +209,11 @@ PR(\arpeg1).clone {
 		?? { \default }
 	};
 	~modeKeys = #[mode, root, scale, tuning, octave];
-	~setDefault = { |key, value| ~defaults.setDefault(key, value) };
+	~setDefault = { |... pairs|
+		pairs.pairsDo { |key, value|
+			~defaults.setDefault(key, value)
+		};
+	};
 } => PR(\arpeg1LC);
 
 (
@@ -235,9 +243,11 @@ make: { |name|
 	p.child.defaults = PR(\clDefaults).copy.prep((), name);
 	p.defaults = PR(\clDefaults).copy.prep((octave: ~octave), name);
 	p.modeKeys = #[mode, root, scale, tuning, octave];
-	p.setDefault = { |key, value|
-		~child.setDefault(key, value);
-		~defaults.setDefault(key, value);
+	p.setDefault = { |... pairs|
+		pairs.pairsDo { |key, value|
+			~child.setDefault(key, value);
+			~defaults.setDefault(key, value);
+		};
 	};
 	p.setVoicerParms = { |parms, post|
 		~defaults.setVoicerParms(parms, post);
