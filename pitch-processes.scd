@@ -327,6 +327,7 @@ make: { |name|
 	};
 	p.child.event.collIndex = name;
 	p.child.event.eventKey = ~eventKey ?? { \voicerArtic };
+	p.child.event.type = \voicerNote;  // ignored for artic types
 	p.child.fitFunc = \chordFitInt;
 	p.child.makeChordPattern = {
 		var lastTop = 0, firstArg = { |val| val };
