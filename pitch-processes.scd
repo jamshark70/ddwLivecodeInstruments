@@ -67,6 +67,7 @@ Proto {
 	};
 	~asPattern = {
 		Pchain(
+			BPStream(\voicerPostArgs),
 			BPStream(\override),
 			BPStream(\voicerOverride),
 			BPStream(\base)
@@ -344,13 +345,21 @@ make: { |name|
 		};
 	};
 	p.bindVC = { |vc|
+		var eventKey;
+		Func(\bindVC).eval(vc);
+		eventKey = vc.env[\eventKey];
+		~child.event[\eventKey] = eventKey ?? { \voicerArtic };
+		currentEnvironment
+	};
+	/*
+	p.bindVC = { |vc|
 		var temp;
 		if(vc.exists) {
 			~setVoicerParms.(
 				vc.env[\argPairs].value(vc),
 				vc.env[\postArgs].value(vc)
 			);
-			temp = vc.env[\extraChildParms].value(vc);
+			temp = vc.env[\extraChildParms].value(vc).debug("childparms");
 			if(temp.notNil) {
 				temp.keysValuesDo { |key, value|
 					~child[key] = value;
@@ -361,6 +370,7 @@ make: { |name|
 			"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
 		};
 	};
+	*/
 
 	TempoClock.default => p;
 	p
@@ -502,6 +512,8 @@ make: { |name|
 	BP(name).import((chTop: \acceptMIDIBuf));
 	BP(name).child.fitFunc = ~fit;
 	BP(name).bassID = ~bassID;
+	BP(name).bindVC = Func(\bindVC).v;
+	/*
 	BP(name).bindVC = { |vc|
 		var temp;
 		if(vc.exists) {
@@ -522,6 +534,7 @@ make: { |name|
 			"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
 		};
 	};
+	*/
 	if(MBM.exists(0)) {
 		chords = MBM(0)[~chords];
 		if(chords.notNil) {
@@ -549,14 +562,15 @@ type: \bp) => Fact(\arpegBP);
 			vc.env[\argPairs].value(vc),
 			vc.env[\postArgs].value(vc)
 		);
-		if(~child.notNil) {
+		// if(~child.notNil) {
 			temp = vc.env[\extraChildParms].value(vc);
 			if(temp.notNil) {
 				temp.keysValuesDo { |key, value|
-					~child[key] = value;
+				key.envirPut(value);
+				// ~child[key] = value;
 				};
 			};
-		};
+		// };
 		temp = vc.env[\extraParms].value(vc);
 		if(temp.notNil) {
 			temp.keysValuesDo { |key, value|
