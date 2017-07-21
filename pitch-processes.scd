@@ -350,6 +350,7 @@ make: { |name|
 		Func(\bindVC).eval(vc);
 		eventKey = vc.env[\eventKey];
 		~child.event[\eventKey] = eventKey ?? { \voicerArtic };
+		~child.event.type = \voicerNote;  // ignored for artic types
 		currentEnvironment
 	};
 	/*
