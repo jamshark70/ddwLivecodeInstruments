@@ -175,7 +175,7 @@ SynthDef(\fmpad, { |out, gate = 1, freq = 440, freqlag = 0.08,
 
 (
 keys: #[master, rvbmc],
-initLevel: -12.dbamp,
+initLevel: -16.2.dbamp,
 rvbLevel: -5.3.dbamp,
 argPairs: [amp: 0.5],
 make: { |name|
@@ -188,8 +188,8 @@ make: { |name|
 	~cbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(#[1, 1, 1]) });
 
 	out = Voicer(20, \fmpad, [mbuf: ~mbuf.bufnum, cbuf: ~cbuf.bufnum, amp: 0.5], target: ~target);
-	out.mapGlobal(\index, nil, 2, [0.1, 10, \exp]);
-	out.mapGlobal(\ratio, nil, 5, SnapControlSpec(1, 10, \lin, 1).snap_(0.15));
+	out.mapGlobal(\index, nil, 0.392, [0.1, 10, \exp]);
+	out.mapGlobal(\ratio, nil, 2, SnapControlSpec(1, 10, \lin, 1).snap_(0.15));
 	out.mapGlobal(\modAmt, nil, 1.5, [0, 3]);
 	out
 },
