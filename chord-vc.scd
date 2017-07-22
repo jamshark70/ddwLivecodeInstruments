@@ -243,3 +243,52 @@ make: { |name|
 free: { [~target, ~cbuf, ~mbuf].free },
 type: \vc) => Fact(\fmbrassVC);
 );
+
+
+(
+SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
+	freq = 440, detun = 1.008,
+	index = 1, modAmt = 1, modDcy = 1, maxIndex = 7, acc = 0, accMul = 1,
+	sus = 0.6, dcy = 0.08, rel = 2, width = 0.8, panCenter = 0,
+	ratios = #[1, 2, 4, 8.5]|
+	var n = 8,
+	r_detun = detun.reciprocal,
+	detunes = Array.fill(n, { ExpRand(r_detun, detun) }),
+	initTrig = Impulse.kr(0),
+	// in principle, slight variability by positioning ratios randomly each time
+	// in practice, this is purely for vanity
+	ratioGen = Dseq([Dshuf(ratios, 1)], inf),
+	ratioSpread = Array.fill(n, { Demand.kr(initTrig, 0, ratioGen) }),
+	maxAmt = max(0, maxIndex / index - 1),
+	modEg = EnvGen.kr(Env.perc(0.01, modDcy)) * (min(maxAmt, modAmt) * ((acc * accMul) + 1)) + 1,
+	detunedFreqs = detunes * freq,
+	mod = Osc.ar(mbuf, detunedFreqs * ratioSpread, 0, index * modEg),
+	car = Osc.ar(cbuf, detunedFreqs * (1 + mod)),
+	eg = EnvGen.kr(Env([0, 1, sus, 0], [0.003, dcy, rel], -2), doneAction: 2);
+	car = Splay.ar(car, width, amp, panCenter);
+	Out.ar(out, car * eg);
+}).add;
+
+(
+keys: #[master, rvbmc],
+initLevel: -12.dbamp,
+rvbLevel: -6.dbamp,
+argPairs: [amp: 0.5],
+modHrm: (1..4).reciprocal,
+carHrm: #[1],
+make: { |name|
+	var out;
+	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		chan.newPostSend(~rvbmc, ~rvbLevel);
+	});
+	~mbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~modHrm) });
+	~cbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~carHrm) });
+	out = Voicer(20, \fmclav, [mbuf: ~mbuf.bufnum, cbuf: ~cbuf.bufnum], target: ~target);
+	out.mapGlobal(\index, nil, 2.5, [0.5, 20, \exp]);
+	out.mapGlobal(\accMul, nil, 1, [0, 3]);
+	out.mapGlobal(\detun, nil, 1.01, \mydetune);
+	out
+},
+free: { [~target, ~cbuf, ~mbuf].free },
+type: \vc) => Fact(\fmclavVC);
+);
