@@ -39,7 +39,7 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 		initLevel: -4.8.dbamp, // -12.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \pulsepluck,
-		argPairs: [accAmt: 5],
+		argPairs: [accAmt: 5, amp: 0.5],
 		make: { |name|
 			var out;
 			~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
@@ -276,10 +276,12 @@ rvbLevel: -6.dbamp,
 argPairs: [amp: 0.5],
 modHrm: (1..4).reciprocal,
 carHrm: #[1],
+fxFunc: nil,
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		chan.newPostSend(~rvbmc, ~rvbLevel);
+		~fxFunc.(chan);
 	});
 	~mbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~modHrm) });
 	~cbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~carHrm) });
