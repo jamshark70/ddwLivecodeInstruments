@@ -363,6 +363,14 @@ make: { |name|
 		~child.event.type = \voicerNote;  // ignored for artic types
 		currentEnvironment
 	};
+	p.superReset = p[\reset];
+	p[\reset] = {
+		~superReset.();
+		~makeStreamForKey.(\phraseSeq);
+		~makeStreamForKey.(\defaults);
+		~makeStreamForKey.(\postDefaults);
+		~userreset.();
+	};
 	/*
 	p.bindVC = { |vc|
 		var temp;
