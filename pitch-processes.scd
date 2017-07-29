@@ -497,8 +497,9 @@ make: { |name|
 			// assumes chordNotes are sorted in descending order
 			// chordFitInt does this. Need to check others
 			\degree, Pfunc { |ev|
-				var offset = if(ev[\skip] <= 0) { 0 } { [0, ev[\skip]] };
-				~chordNotes.wrapAt(ev[\chIndex].asFloat + offset).asFloat
+				var offset = if(ev[\skip] <= 0) { 0 } { [0, ev[\skip]] },
+				oct = ev[\chIndex] div: 7;  // octave size hardcoded elsewhere too, be careful
+				~chordNotes.wrapAt(ev[\chIndex].asFloat % 7 + offset).asFloat + (7 * oct)
 			},
 			\freq, Pfunc { |ev|
 				ev[\mode].asMode.cps(ev[\degree])
