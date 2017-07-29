@@ -134,7 +134,7 @@ make: { |name|
 	if(~bassID.notNil) {
 		leadTime = max(leadTime, 0.05);
 	};
-	BP(name).leadTime = ~leadTime;
+	BP(name).leadTime = leadTime;
 	BP(name)
 }, type: \bp) => Fact(\melBP);
 
