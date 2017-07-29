@@ -178,14 +178,16 @@ keys: #[master, rvbmc],
 initLevel: -16.2.dbamp,
 rvbLevel: -5.3.dbamp,
 argPairs: [amp: 0.5],
+modHrm: (1..4).reciprocal,
+carHrm: #[1, 1, 1],
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		chan.newPostSend(~rvbmc, ~rvbLevel);
 	});
 
-	~mbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg((1..4).reciprocal) });
-	~cbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(#[1, 1, 1]) });
+	~mbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~modHrm.value) });
+	~cbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~carHrm.value) });
 
 	out = Voicer(20, \fmpad, [mbuf: ~mbuf.bufnum, cbuf: ~cbuf.bufnum, amp: 0.5], target: ~target);
 	out.mapGlobal(\index, nil, 0.392, [0.1, 10, \exp]);
@@ -294,3 +296,65 @@ make: { |name|
 free: { [~target, ~cbuf, ~mbuf].free },
 type: \vc) => Fact(\fmclavVC);
 );
+
+
+{
+	var makeSynth = { |name, oscFunc, n(6)|
+		SynthDef(name, { |out, gate = 1, freq = 440, detun = 1.008, amp = 0.1,
+			ffreq = 2000, rq = 1, fmodAmt = 2, fmodAtk = 0.01, fmodDcy = 1,
+			panCenter = 0, panWidth = 0.8, freqlag = 0.1,
+			atk = 0.05, dcy = 0.2, sus = 0.6, rel = 1|
+			var detunes = Array.fill(n, { detun ** Rand(-1, 1) }),
+			freqs = Lag.kr(freq, freqlag) * detunes,
+			sig = SynthDef.wrap(oscFunc, prependArgs: [freqs]),
+			feg = EnvGen.kr(Env([0, 1, 0], [fmodAtk, fmodDcy], -4), gate),
+			eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
+			sig = Splay.ar(sig, panWidth, amp, panCenter);
+			sig = RLPF.ar(sig, (ffreq * (1 + (fmodAmt * feg))).clip(20, 20000), rq);
+			Out.ar(out, sig * eg);
+		}).add;
+	};
+
+	makeSynth.(\sawpad, { |freqs| Saw.ar(freqs) });
+	makeSynth.(\pulsepad, { |freqs, pwidth = 0.5| Pulse.ar(freqs, pwidth) });
+	makeSynth.(\mixedpad, { |freqs, pwidth = 0.5|
+		freqs.collect { |freq, i|
+			if(i.even) { Saw.ar(freq) } { Pulse.ar(freq, pwidth) }
+		}
+	});
+
+	(
+		keys: #[master, rvbmc],
+		initLevel: -12.dbamp,
+		rvbLevel: -6.dbamp,
+		defname: \mixedpad,
+		ffreq: 361.23244647798,
+		rq: 0.84594594594595,
+		detun: 1.0055606242111,
+		fmodAtk: 0.59372509113479,
+		fmodDcy: 3.1902009819793,
+		atk: 0.66088520044072,
+		dcy: 1.2987158009894,
+		fmodAmt: 0.2564799643352,
+		pwdith: 0.5,
+		make: { |name|
+			var out;
+			~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+				chan.newPostSend(~rvbmc, ~rvbLevel);
+			});
+
+			out = Voicer(20, ~defname, [
+				detun: ~detun,
+				fmodAtk: ~fmodAtk,
+				fmodDcy: ~fmodDcy,
+				atk: ~atk,
+				dcy: ~dcy,
+				fmodAmt: ~fmodAmt
+			], target: ~target);
+			out.mapGlobal(\ffreq, nil, ~ffreq, \freq);
+			out.mapGlobal(\rq, nil, ~rq, \myrq);
+			out
+		},
+		free: { ~target.free },
+		type: \vc) => Fact(\anapadVC);
+}.value;
