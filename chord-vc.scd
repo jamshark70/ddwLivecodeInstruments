@@ -328,7 +328,7 @@ type: \vc) => Fact(\fmclavVC);
 		initLevel: -12.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \mixedpad,
-		ffreq: 361.23244647798,
+		ffreq: 261.4,
 		rq: 0.84594594594595,
 		detun: 1.0055606242111,
 		fmodAtk: 0.59372509113479,
@@ -341,6 +341,21 @@ type: \vc) => Fact(\fmclavVC);
 			var out;
 			~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 				chan.newPostSend(~rvbmc, ~rvbLevel);
+				~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 3, 0.0055924758241628, 0.44366873309786, 0.0007347533432105, 1.077997479173, 0.5687245304079]);
+				~eq = MultiEQ.new(2,
+					\hipass, 132.629, 0.dbamp, 1,
+					\eq, 256.49, -3.158.dbamp, 1.282,
+					\eq, 10341.84, 3.459.dbamp, 1
+				).play(chan);
+				~stereoEnh = chan.playfx { |outbus, enh = 1.76|
+					var l, r, m, s;
+					#l, r = In.ar(outbus, 2);
+					m = l + r;
+					s = l - r;
+					s = s * enh;
+					[m + s, m - s] * 0.5
+				};
+				~chorus.doWhenPlaying(e { ~chorus.synth.moveToHead(chan.effectgroup) });
 			});
 
 			out = Voicer(20, ~defname, [
