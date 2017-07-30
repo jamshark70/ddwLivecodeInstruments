@@ -39,7 +39,7 @@ available: (
 				\decay, BPStream(\decay, envir: ~drums[~drumID.indexOf(\deepkick)])
 			)
 		},
-		parmMap: (amp: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
 		extras: (maxTime: 0.25, decay: 0.05)
 	),
 	tightkick: (
@@ -57,7 +57,7 @@ available: (
 				\eq, 274.929, -1.955.dbamp, 1
 			).play(chan);
 		},
-		parmMap: (amp: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
 		postDefaults: (time: 0.15)
 	),
 	// Midrange
@@ -75,7 +75,7 @@ available: (
 				\eq, 194.297, -4.962.dbamp, 1.192
 			).play(chan);
 		},
-		parmMap: (amp: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
 	),
 	// Weirdo (some funky pitch countour at the start)
 	/** Snares **/
@@ -94,7 +94,7 @@ available: (
 			).play(chan);
 			~parmMap = ~parmMap.copy;
 		},
-		parmMap: (amp: ($.: 0.3, $-: 0.75, $^: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($.: 0.3, $-: 0.75, $^: 1, $*: 0.75)),
 	),
 	// Fat
 	fatsnr: (
@@ -109,7 +109,7 @@ available: (
 				\eq, 2324.645, -11.579.dbamp, 0.07
 			).play(chan);
 		},
-		parmMap: (amp: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
 	),
 	// Quasi-pitched
 	pitchsnr: (
@@ -132,7 +132,7 @@ available: (
 				\eq, 1181.372, -10.075.dbamp, 0.055
 			).play(chan);
 		},
-		parmMap: (amp: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
 	),
 	// Clap
 	clap: (
@@ -146,7 +146,7 @@ available: (
 				\hipass, 239.287, 0.dbamp, 1
 			).play(chan);
 		},
-		parmMap: (amp: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
 	),
 	// Realistic (maybe steal 80s-style from "Wiggle Room"?)
 	snr80: (
@@ -163,7 +163,7 @@ available: (
 				\eq, 389.022, -4.06.dbamp, 1.252
 			).play(chan);
 		},
-		parmMap: (amp: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
+		parmMap: (ampBuf: ($.: 0.4, $-: 0.75, $^: 1, $*: 0.75)),
 	),
 ),
 // availStart: (snare: 0, kick: 0),  // unused?
@@ -202,7 +202,7 @@ make: { |name|
 			~drums.do { |thing| thing[\buf].free; thing[\chan].free };
 			~bpsubmix.free;
 		},
-		defaultParm: \amp,
+		defaultParm: \ampBuf,
 		parmMap: (),
 		instrMap: (1: \bufGrainPan, 2: \bufGrainPan2),  // numChannels -> synthdef name
 		commonParams: Plazy {
@@ -295,7 +295,11 @@ make: { |name|
 				var localParm;
 				if(~parmMap[parm].isNil) {
 					~parmMap[parm] = IdentityDictionary.new;
-					if(parm == ~defaultParm) { ~parmMap[parm][\alias] = [parm, \bufIndex] };
+					if(parm == ~defaultParm) {
+						~parmMap[parm][\alias] = [\amp, \bufIndex]
+					} {
+						~parmMap[parm][\alias] = [\amp]
+					};
 				};
 				localParm = ~parmMap[parm].put(\fromDrum, true);
 				map.keysValuesDo { |event, value|
