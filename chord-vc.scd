@@ -75,14 +75,20 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 	panShuf = Dshuf((0 .. ratios.size-1)),
 	initTrig = Impulse.kr(0),
 	panLeft, panIncr, sig;
+	var debugRingz = Array(ratios.size), debugCheck = Array(ratios.size);
 	width = min(width, 1 - abs(pan));
 	panIncr = width / (ratios.size-1);
 	panLeft = pan - width;
 	time = time * Sensitivity.kr(1, gateLatch, vTimeSens);
 	sig = Mix(ratios.collect { |ratio, i|
-		var panIndex = Demand.kr(initTrig, 0, panShuf);
-		Pan2.ar(Ringz.ar(exc, freq * ratio, time, amps[i]), panLeft + (panIndex * panIncr));
+		var panIndex = Demand.kr(initTrig, 0, panShuf),
+		ringz = Ringz.ar(exc, freq * ratio, time, amps[i]);
+		debugRingz.add(ringz);
+		debugCheck.add(CheckBadValues.ar(ringz) + (8 * (ringz.abs > 2)));
+		Pan2.ar(ringz /*- Ringz.ar(exc, freq * ratio, 0.01, amps[i])*/, panLeft + (panIndex * panIncr));
 	});
+	debugRingz.poll(debugCheck);
+	// sig = sig * EnvGen.ar(Env([0, 0, 1], [ControlDur.ir * 12, 0.01]));
 	DetectSilence.ar(sig.sum, 0.001, doneAction: 2);
 	Out.ar(out, sig);
 }).add;
