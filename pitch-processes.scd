@@ -87,7 +87,7 @@ make: { |name|
 	var leadTime = ~leadTime;
 	BP(name).free;
 	PR(\abstractLiveCode).chuck(BP(name), nil, (
-		event: (eventKey: \default, type: \voicerArtic),
+		event: (eventKey: \defaultPassRests, type: \voicerArtic),
 		bassID: ~bassID,
 		defaultParm: \degree,
 		parmMap: (
@@ -371,6 +371,29 @@ make: { |name|
 		~makeStreamForKey.(\postDefaults);
 		~userreset.();
 	};
+	// You would think I don't have to do this... but:
+	// If a cll event is a true rest, e.g. 'x', then the top note is a Rest()
+	// and not a number -- but top notes being numbers is a precondition for
+	// ProtoEvent(\macroRh) to forward to the child process. So the child never
+	// fires and never has an opportunity to cut off hanging notes.
+	// So the parent has to do it, here.
+	p[\superPatternTop] = p[\patternAvecTop];
+	p[\patternAvecTop] = {
+		~superPatternTop.value.collect { |ev|
+			var sec;
+			if(ev[\top].isRest and: {
+				ev[\top][\initialRest] != true and: {
+					~child.currentChordSec.notNil
+				}
+			}) {
+				// note trigger times == ~child.currentChordSec
+				// but test for release is "<" so we need a slight difference
+				ev[\voicer].tryPerform(\releaseSustainingBefore, ~child.currentChordSec + 0.01,
+					ev[\voicer].target.server.latency);
+			};
+			ev
+		};
+	};
 	/*
 	p.bindVC = { |vc|
 		var temp;
@@ -416,7 +439,7 @@ make: { |name|
 	};
 	PR(\abstractLiveCode).canWrap = true;
 	PR(\abstractLiveCode).chuck(BP(name), nil, (
-		event: (eventKey: \default, type: \voicerArtic),
+		event: (eventKey: \defaultPassRests, type: \voicerArtic),
 		userprep: {
 			~parmMap[\chIndex] = (isPitch: true);
 			~parmMap[\ch] = (alias: \chord);
