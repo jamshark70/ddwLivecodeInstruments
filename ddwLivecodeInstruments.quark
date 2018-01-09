@@ -1,0 +1,9 @@
+(
+	name:		"ddwLivecodeInstruments",
+	summary:		"Ready-to-use instruments and processes for the ddwChucklib-livecode live-coding music system.",
+	author:		"James Harkins",
+	version:		0.1,
+//	helpdoc:		"Help/ChuckOverview.html",
+	url:			"http://www.dewdrop-world.net/display.php?src=sc.md",
+	dependencies:	["ddwChucklib", "ddwChucklib-livecode"]
+)
