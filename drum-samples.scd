@@ -183,7 +183,6 @@ make: { |name|
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
 		userprep: {
-			var thing = ~available[~drumID];
 			~drumID = ~drumID.asArray.select { |key|
 				if(~available[key].isNil) {
 					"BP(%): Drum ID % is not known.".format(
@@ -195,8 +194,21 @@ make: { |name|
 			if(~drumID.size == 0) {
 				Error("drumsetBP: Please supply the names of existing BPs").throw;
 			};
-			~bpsubmix = MixerChannel(~collIndex, s, 2, 2, ~initLevel, ~pan ? 0, outbus: ~master);
+			if(~drumID.size > 1) {
+				~bpsubmix = MixerChannel(~collIndex, s, 2, 2, ~initLevel, ~pan ? 0, outbus: ~master);
+				~inChannels = ~bpsubmix.inChannels;
+				~outChannels = ~bpsubmix.outChannels;
+			} {
+				~inChannels = 2;
+				~outChannels = 2;
+			};
 			~loadDrums.();
+			// for GUI
+			if(~drums.size > 1) {
+				~chan = ~bpsubmix
+			} {
+				~chan = ~drums[0].chan
+			};
 		},
 		userfree: {
 			~drums.do { |thing| thing[\buf].free; thing[\chan].free };
@@ -253,16 +265,20 @@ make: { |name|
 		},
 		// drumThing: (buf, channel, defaults, postDefaults...)
 		loadDrums: {
-			var parmMap = IdentityDictionary.new;
+			var parmMap = IdentityDictionary.new,
+			volAdjust = if(~drumID.size > 1) { 3.dbamp } { 1 };
 			~drums = ~drumID.collect { |key, i|
 				var thing = ~available[key],
 				chan = MixerChannel((~collIndex ++ key).asSymbol, s,
-					~bpsubmix.inChannels, ~bpsubmix.outChannels,
-					thing[\level], thing[\pan] ? 0,
-					outbus: ~bpsubmix, completionFunc: { |chan|
+					~inChannels, ~outChannels,
+					thing[\level] * volAdjust, thing[\pan] ? 0,
+					outbus: ~bpsubmix ?? { ~master }, completionFunc: { |chan|
 						thing[\fx].value(chan);
 						if(thing[\rvbLevel].notNil) {
-							chan.newPostSend((thing[\rvbChan] ?? { \rvbmc }).envirGet, thing[\rvbLevel]);
+							chan.newPostSend(
+								(thing[\rvbChan] ?? { \rvbmc }).envirGet,
+								thing[\rvbLevel] / volAdjust
+							);
 						};
 					}
 				), out;
@@ -318,8 +334,7 @@ make: { |name|
 		shouldNotIndexPerDrum: { |parm, event, map(~parmMap[parm])|
 			(map.tryPerform(\at, \fromDrum) ?? { false }).not or: { ~reservedKeys.includes(event) }
 		},
-		reservedKeys: #[isPitch, alias, fromDrum],
-		chan: { ~drums.collect(_.chan) }
+		reservedKeys: #[isPitch, alias, fromDrum]
 	));
 	TempoClock.default => BP(name);
 }, type: \bp) => Fact(\drumBP);
