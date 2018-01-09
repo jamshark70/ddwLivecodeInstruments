@@ -18,7 +18,7 @@ SynthDef(\fmBass, { |out, freq = 440, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbu
 
 (
 keys: #[master],
-initLevel: -2.4.dbamp, // 0.75,
+initLevel: -8.6.dbamp, // 0.75,
 argPairs: Pbind(
 	\bufmod, Pwhite(0, 10.999, inf),
 	\amp, 0.5,
@@ -38,6 +38,7 @@ make: { |name|
 				);
 				XFade2.ar(sig, wet, xfade * 2 - 1)
 			};
+			~eq = MultiEQ(2, \bhipass, 104.018, 0.dbamp, 0.369).play(chan);
 		}
 	);
 	~cbuf = Buffer.alloc(s, 2048, 1, completionMessage: { |buf| buf.sine1Msg(#[1]) });
@@ -79,7 +80,9 @@ keys: #[master],
 initLevel: -5.6.dbamp,
 make: { |name|
 	var out;
-	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master);
+	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		~eq = MultiEQ(2, \bhipass, 105.84, 0.dbamp, 0.474).play(chan);
+	});
 	out = /*MonoPorta*/Voicer(2, \pulseBass, [freqlag: 0.08], target: ~target);
 	// out.portaTime = 0.08;
 	out.mapGlobal(\ffreq, nil, 261.4, \freq);
@@ -119,11 +122,13 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 
 (
 keys: #[master],
-initLevel: -10.dbamp,
+initLevel: -22.dbamp,  // for some reason, this synth is LOUD
 argPairs: [amp: 0.5],
 make: { |name|
 	var out;
-	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master);
+	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		~eq = MultiEQ(2, \bhipass, 147.185, 0.dbamp, 0.504).play(chan);
+	});
 	out = /*MonoPorta*/Voicer(2, \distBass, args: [
 		freqRand: 1.0025, startRq: 1, endRq: 1, rqDecay: 1, freqlag: 0.08
 	], target: ~target);

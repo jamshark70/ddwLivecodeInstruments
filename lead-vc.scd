@@ -164,7 +164,7 @@ SynthDef(\pulseLead, { |out, gate = 1, t_gate, amp = 0.1,
 
 (
 keys: #[master, shortrvbmc],
-initLevel: -5.6.dbamp,
+initLevel: -9.7.dbamp,
 rvbLevel: -0.948.dbamp,
 argPairs: [amp: 0.5],
 make: { |name|

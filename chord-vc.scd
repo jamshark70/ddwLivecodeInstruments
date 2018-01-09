@@ -36,7 +36,7 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 
 	(
 		keys: #[master, rvbmc],
-		initLevel: -4.8.dbamp, // -12.dbamp,
+		initLevel: -12.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \pulsepluck,
 		argPairs: [accAmt: 5, amp: 0.5],
@@ -95,7 +95,7 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 
 (
 keys: #[master, rvbmc],
-initLevel: -13.5.dbamp,
+initLevel: -20.dbamp,
 rvbLevel: -2.42.dbamp,
 eventKey: \voicerNote,
 bufData: {
@@ -223,7 +223,7 @@ SynthDef(\fmbrass, { |out, freq = 220, gate = 1, t_gate = 1, amp = 0.1, cbuf, mb
 
 (
 keys: #[master, rvbmc],
-initLevel: -12.dbamp,
+initLevel: -17.5.dbamp,
 rvbLevel: -1.dbamp,
 argPairs: [amp: 0.25],
 make: { |name|
@@ -279,7 +279,7 @@ SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
 
 (
 keys: #[master, rvbmc],
-initLevel: -12.dbamp,
+initLevel: -19.dbamp,
 rvbLevel: -6.dbamp,
 argPairs: [amp: 0.5],
 modHrm: (1..4).reciprocal,
@@ -331,7 +331,7 @@ type: \vc) => Fact(\fmclavVC);
 
 	(
 		keys: #[master, rvbmc],
-		initLevel: -12.dbamp,
+		initLevel: -11.2.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \mixedpad,
 		ffreq: 261.4,
@@ -377,5 +377,6 @@ type: \vc) => Fact(\fmclavVC);
 			out
 		},
 		free: { ~target.free },
-		type: \vc) => Fact(\anapadVC);
+		type: \vc
+	) => Fact(\anapadVC);
 }.value;

@@ -45,14 +45,14 @@ available: (
 	tightkick: (
 		bpname: \tk,
 		path: "lovely-kick.aif",
-		level: -9.84.dbamp, // -3.1.dbamp,
+		level: -4.6.dbamp, // -3.1.dbamp,
 		rvbLevel: nil,
 		fx: { |chan|
 			~eq = MultiEQ.new(2,
 				\eq, 132.629, -9.474.dbamp, 0.085,
 				\eq, 166.199, -8.271.dbamp, 0.055,
 				\eq, 223.238, -7.669.dbamp, 0.055,
-				\bhipass, 95.37, 0.dbamp, 0.549,
+				\bhipass, 71, 0.dbamp, 0.549,
 				\eq, 4735.893, 3.459.dbamp, 1,
 				\eq, 274.929, -1.955.dbamp, 1
 			).play(chan);
@@ -64,14 +64,14 @@ available: (
 	midkick: (
 		bpname: \mk,
 		path: "phatbd.aif",
-		level: -11.3.dbamp,
+		level: -7.dbamp,
 		rvbLevel: nil,
 		fx: { |chan|
 			~eq = MultiEQ.new(2,
 				\eq, 123.733, -8.271.dbamp, 0.16,
 				\eq, 178.147, -7.368.dbamp, 0.085,
 				\eq, 315.88, -7.368.dbamp, 0.07,
-				\bhipass, 97.04, 0.dbamp, 0.414,
+				\bhipass, 71, 0.dbamp, 0.414,
 				\eq, 194.297, -4.962.dbamp, 1.192
 			).play(chan);
 		},
@@ -83,7 +83,7 @@ available: (
 	tightsnr: (
 		bpname: \tsn,
 		path: "606snar.aiff",
-		level: -16.dbamp, // -9.8.dbamp,
+		level: -7.9.dbamp, // -9.8.dbamp,
 		rvbChan: \rvbmc,
 		rvbLevel: -2.9.dbamp,
 		pan: 0.3,
@@ -100,7 +100,7 @@ available: (
 	fatsnr: (
 		bpname: \fsn,
 		path: "thick_hard_sd-eq.aif",
-		level: -7.72.dbamp,
+		level: -11.2.dbamp,
 		rvbChan: \shortrvbmc,
 		rvbLevel: -2.8.dbamp,
 		pan: 0.3,
@@ -115,7 +115,7 @@ available: (
 	pitchsnr: (
 		bpname: \psn,
 		path: "metal-sd4.wav",
-		level: -9.23.dbamp, // -7.dbamp,
+		level: -8.dbamp, // -7.dbamp,
 		rvbChan: \rvbmc,  // alt: \shortrvbmc
 		rvbLevel: -1.dbamp,  // alt: -3.537.dbamp
 		pan: 0.3,
@@ -138,7 +138,7 @@ available: (
 	clap: (
 		bpname: \clp,
 		path: "Clap01.aiff",
-		level: -5.8.dbamp,
+		level: -8.dbamp,
 		rvbChan: \shortrvbmc,
 		rvbLevel: -6.6.dbamp,
 		fx: { |chan|
@@ -152,7 +152,7 @@ available: (
 	snr80: (
 		bpname: \s8,
 		path: "SNARE1.aif",
-		level: -5.8.dbamp,
+		level: -8.6.dbamp,
 		rvbChan: \shortrvbmc,
 		rvbLevel: -2.dbamp,
 		pan: 0.3,
@@ -382,7 +382,7 @@ available: (
 			"606ohat.aiff"
 		],
 		bufStart: #[0, 0],
-		level: -16.dbamp,
+		level: -22.5.dbamp,
 		rvbChan: \shortrvbmc,
 		rvbLevel: -5.9.dbamp,
 		pan: -0.3,
