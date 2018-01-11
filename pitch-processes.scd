@@ -474,7 +474,7 @@ make: { |name|
 		// stuff in dummy values before other processing
 		defaults: PR(\clDefaults).copy.prep(Pbind(
 			\nextChord, false,
-			\sustain, 0, \legato, 0, \skip, 2,
+			\sustain, 0, \legato, 0, \skip, 0,
 			\mode, Pfunc { ~child[\mode] ?? { \default } },
 		), name),
 		bassChanged: false,
@@ -511,9 +511,6 @@ make: { |name|
 					};
 					~bassChanged = false;
 					~chordNotes = ~child.currentChord.lastFitNotes;
-				}
-				{ ~bassChanged } {
-
 				};
 				ev[\nextChord]
 			},
@@ -639,3 +636,35 @@ type: \bp) => Fact(\arpegBP);
 		};
 	};
 };
+
+if(MBM.exists(0).not) {
+	MIDIBufManager(TempoClock.default, nil) => MBM.prNew(0);
+};
+
+MIDIRecBuf(\bigch, [
+	[60, 64, 67, 69, 74, 77, 79,
+		60, 64, 65, 71, 74, 76, 81,
+		60, 62, 65, 67, 74, 76, 81,
+		60, 67, 69, 74, 77, 79, 84,
+		60, 64, 67, 72, 76, 79, 84],
+	Array.fill(7*5, 0.1).putSeries(6, 13, 34, 1),
+	0.1, 0.5
+].asNotes, properties: (type: \ch, mode: \cmaj)) => MBM(0);
+
+MIDIRecBuf(\smallch, [
+	[60, 64, 67,  60, 65, 67,  60, 64, 69,  60, 62, 69,  60, 64, 71,  60, 62, 71,  60, 65, 71],
+	Array.fill(3*7, 0.1).putSeries(2, 5, 20, 1),
+	0.1, 0.5
+].asNotes, properties: (type: \ch, mode: \cmaj)) => MBM(0);
+
+MIDIRecBuf(\one, [
+	[60],
+	[0.1],
+	0.1, 0.5
+].asNotes, properties: (type: \ch, mode: \cmaj)) => MBM(0);
+
+MIDIRecBuf(\two, [
+	[[48, 50, 52, 53, 55, 57, 59], 60].lace(14),
+	[0.1, 1].lace(14),
+	0.1, 0.5
+].asNotes, properties: (type: \ch, mode: \cmaj)) => MBM(0);
