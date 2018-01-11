@@ -175,7 +175,7 @@ make: { |name|
 
 	out = Voicer(2, \pulseLead, target: ~target);
 	// out.mapGlobal(\pwidth, nil, 0.5, [0, 1]);
-	out.mapGlobal(\ffreq, nil, 1000, \freq);
+	out.mapGlobal(\ffreq, nil, 1800, \freq);
 	out.mapGlobal(\gain, nil, 1, [0, 3.999]);
 	out.mapGlobal(\ffHeight, nil, 2, [0, 10]);
 	out.mapGlobal(\detun, nil, 1.01, \mydetune);

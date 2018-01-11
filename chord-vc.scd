@@ -334,7 +334,7 @@ type: \vc) => Fact(\fmclavVC);
 		initLevel: -11.2.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \mixedpad,
-		ffreq: 261.4,
+		ffreq: 1800,
 		rq: 0.84594594594595,
 		detun: 1.0055606242111,
 		fmodAtk: 0.59372509113479,
