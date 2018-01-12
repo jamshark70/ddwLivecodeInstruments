@@ -156,7 +156,7 @@ SynthDef(\pulseLead, { |out, gate = 1, t_gate, amp = 0.1,
 
 	gate = (gate > 0) - (retrig > 0);
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
-	LocalOut.kr(eg);
+	LocalOut.kr(eg, DC.kr(0));  // workaround for 3.8 bug
 	sig = sig * eg;
 
 	Out.ar(out, sig);
