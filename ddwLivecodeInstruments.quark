@@ -5,5 +5,12 @@
 	version:		0.1,
 //	helpdoc:		"Help/ChuckOverview.html",
 	url:			"http://www.dewdrop-world.net/display.php?src=sc.md",
-	dependencies:	["ddwChucklib", "ddwChucklib-livecode"]
+	dependencies:	[
+		"ddwChucklib",
+		"ddwChucklib-livecode",
+		"ddwEQ",
+		"ddwMIDI",
+		"ddwVoicer",
+		"ddwSensitivity"
+	]
 )
