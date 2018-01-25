@@ -211,7 +211,19 @@ PR(\arpeg1).clone {
 	~modeKeys = #[mode, root, scale, tuning, octave];
 	~setDefault = { |... pairs|
 		pairs.pairsDo { |key, value|
-			~defaults.setDefault(key, value)
+			// bit of a hack: for ~fitFunc, the mode must be stored in all chords
+			// because, if the chord mode doesn't match the event mode,
+			// it will try to transpose chords. That's good for general chucklib usage,
+			// but here, I want the runtime selection always to override.
+			if(key == \mode) {
+				if(value.isPattern) {
+					"Chord process: Patterns are not supported for \mode".warn;
+				} {
+					~mode = value;
+					~chords.do { |ch| ch.put(\mode, value).put(\modeOverride, value) };
+				};
+			};
+			~defaults.setDefault(key, value);
 		};
 	};
 } => PR(\arpeg1LC);
@@ -228,7 +240,8 @@ arpeg: \block,
 argPairs: nil,
 eventKey: \voicerArtic, // \modalNoteArtic, // \voicerNote,
 make: { |name|
-	var p, buf, mode;
+	var p, buf, mode,
+	factParms = currentEnvironment;
 	BP(name).free;
 
 	buf = MBM(0)[~chords];
@@ -240,17 +253,19 @@ make: { |name|
 		};
 	};
 	p = \newCh.eval(name, ~child, ~prKey, buf, nil, 4, ~micro, ~arpeg, nil, mode);
+	// object to hold defaults for individual note playback (including voicer parameters)
+	// we need another defaults object for the topNote (esp. for 'octave')
+	// but topNote, below, will create it
 	p.child.defaults = PR(\clDefaults).copy.prep((), name);
-	p.defaults = PR(\clDefaults).copy.prep((octave: ~octave), name);
 	p.modeKeys = #[mode, root, scale, tuning, octave];
 	p.setDefault = { |... pairs|
 		pairs.pairsDo { |key, value|
 			~child.setDefault(key, value);
-			~defaults.setDefault(key, value);
+			~topNote.postDefaults.setDefault(key, value);
 		};
 	};
 	p.setVoicerParms = { |parms, post|
-		~defaults.setVoicerParms(parms, post);
+		~topNote.postDefaults.setVoicerParms(parms, post);
 		~child.defaults.setVoicerParms(parms, post);
 	};
 	p.v.import((abstractLiveCode: #[setPattern, valueForParm, parmIsPitch, beatsPerBar,
@@ -272,51 +287,67 @@ make: { |name|
 		// this is necessary to avoid circular reference: BP(name) --> ~topNote --> BP(name) -->
 		// mild hack to hardcode the bp name
 		~bpKey = name;
-		~length = Pfunc { |ev|
-			if(ev[\legato].isNil) {
-				ev.use { ~sustain.value }
-			} {
-				ev[\dur] * ev[\legato]
-			}
-		};
-		~gate = 0.5;
-		~mode = mode;
-		~octave = 5;
+		~postDefaults = PR(\clDefaults).copy.prep(
+			Pbind(
+				\length, Pfunc { |ev|
+					if(ev[\legato].isNil) {
+						ev.use { ~sustain.value }
+					} {
+						ev[\dur] * ev[\legato]
+					}
+				},
+				\gate, 0.5,
+				\mode, mode,
+				\octave, factParms[\octave] ?? { 5 }
+			),
+			name
+		);
 		~parmMap = p.parmMap;
 		~defaultParm = p.defaultParm;
 		~valueForParm = p[\valueForParm];
 		~parmIsPitch = p[\parmIsPitch];
 		~asPattern = {
+			if(~octaveStream.isNil) {
+				~octaveStream = ~octave.asStream;
+			};
 			PnNilSafe(Plazy { |ev|
 				var bp = BP(~bpKey),
 				phrase = bp.phraseSeqStream.next(ev);
 				if(bp.phrases[phrase].notNil) {
 					bp[\lastPhrase] = phrase;
-					Pbindf(
-						Pfindur(bp.phraseDurs[phrase], bp.phrases[phrase]),
-						\note, Pkey(\note) + (7 * BPStream(\octave)),
-						// FFS, some bits downstream need it to be 'note';
-						// other bits downstream need it to be 'freq';
-						// I was a really bad coder back then, wasn't I?
-						\freq, Pfunc { |ev|
-							if(ev[\note].isKindOf(SequenceNote)) {
-								ev[\note].freq
-							} {
-								ev[\note]
-							}
-						},
-						\delta, Pkey(\dur),
-						\length, BPStream(\length),
-						\gate, BPStream(\gate),
-						\mode, BPStream(\mode),
-						\accent, Pfunc { |ev|
-							if(ev[\accent].isNil) {
-								ev[\acc].notNil and: { ev[\acc] > 0 }
-							} {
-								ev[\accent]
-							}
-						},
-						\acc, Pkey(\accent).collect(_.asInteger)
+					// Pchain inverts order: first to evaluate is written last
+					// so this is: phrase pattern --> rest check --> postDefaults --> topNote processing
+					Pchain(
+						Pif(
+							Pfunc { |ev| phrase == \rest or: { ev.isRest } },
+							// more hack: parent process requires length to be populated
+							// and force delta to be a Rest, so that nothing happens upstream
+							Pfunc { |ev| ev.put(\length, 0.01).put(\delta, Rest(ev[\dur])) },
+							Pbindf(
+								BPStream(\postDefaults),
+								\note, Pkey(\note) + (7 * Pkey(\octave)),
+								// FFS, some bits downstream need it to be 'note';
+								// other bits downstream need it to be 'freq';
+								// I was a really bad coder back then, wasn't I?
+								\freq, Pfunc { |ev|
+									if(ev[\note].isKindOf(SequenceNote)) {
+										ev[\note].freq
+									} {
+										ev[\note]
+									}
+								},
+								\delta, Pkey(\dur),
+								\accent, Pfunc { |ev|
+									if(ev[\accent].isNil) {
+										ev[\acc].notNil and: { ev[\acc] > 0 }
+									} {
+										ev[\accent]
+									}
+								},
+								\acc, Pkey(\accent).collect(_.asInteger)
+							)
+						),
+						Pfindur(bp.phraseDurs[phrase], bp.phrases[phrase])
 					)
 				} {
 					"Phrase % not found in BP(%)".format(phrase, ~bpKey.asCompileString).warn;
@@ -381,6 +412,7 @@ make: { |name|
 	p[\patternAvecTop] = {
 		~superPatternTop.value.collect { |ev|
 			var sec;
+			ev[\mode] = ev[\top][\mode];
 			if(ev[\top].isRest and: {
 				ev[\top][\initialRest] != true and: {
 					~child.currentChordSec.notNil
