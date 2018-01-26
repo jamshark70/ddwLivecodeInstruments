@@ -484,8 +484,10 @@ make: { |name|
 			chIndex: (isPitch: true),
 			top: (isPitch: true, convertFunc: { |note, inEvent|
 				var mode, degree;
-				// especially! do not switch chord on an initialRest event
-				if(note.isRest.not and: { note.isKindOf(SequenceNote) }) {
+				// especially! do not switch chord when 'top' has an initialRest event
+				// also check inEvent: if 'top' changes on an inEvent rest,
+				// then the chord never updates unless we postpone the change here.
+				if(note.isRest.not and: { note.isKindOf(SequenceNote) and: { inEvent.isRest.not } }) {
 					mode = inEvent[\mode].asMode;
 					degree = note.asFloat + (mode.scale.size * inEvent[\octave]);
 					inEvent[\top] = (freq: degree, mode: inEvent[\mode]);
@@ -497,7 +499,7 @@ make: { |name|
 					// but (freq: a, mode: b) is the format expected downstream
 					inEvent[\top]
 				}
-				// it is ok to return nil here b/c BP's collect funcs turn it into a Rest()
+				// it is ok to return nil here b/c BP's collect funcs replace it with a default
 			}),
 			acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/),
 			skip: ($0: 0, $1: 1, $2: 2, $3: 3, $4: 4, $5: 5),
