@@ -13,6 +13,7 @@
 (
 keys: #[master, rvbmc, shortrvbmc],
 dir: thisProcess.nowExecutingPath.dirname +/+ "samples",
+autoGui: true,
 available: (
 	/** Kicks **/
 	// Tight
@@ -182,6 +183,7 @@ make: { |name|
 		master: ~master,
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
+		autoGui: ~autoGui,
 		userprep: {
 			~drumID = ~drumID.asArray.select { |key|
 				if(~available[key].isNil) {
@@ -208,6 +210,10 @@ make: { |name|
 				~chan = ~bpsubmix
 			} {
 				~chan = ~drums[0].chan
+			};
+			// version safety: new instruments + old cll won't know how to do this
+			if(~autoGui == true and: { PR(\clMake).v[\autoAssignMixer].notNil }) {
+				PR(\clMake).autoAssignMixer(~chan);
 			};
 		},
 		userfree: {
@@ -344,6 +350,7 @@ make: { |name|
 (
 keys: #[master, shortrvbmc],
 dir: thisProcess.nowExecutingPath.dirname +/+ "samples",
+autoGui: true,
 available: (
 	// Tight, thin
 	thinhh: (
@@ -464,6 +471,7 @@ make: { |name|
 		master: ~master,
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
+		autoGui: ~autoGui,
 		userprep: {
 			var thing = ~available[~drumID], bufStart;
 			if(thing.isNil) {
@@ -494,6 +502,9 @@ make: { |name|
 				thing[\extras].keysValuesDo { |key, value|
 					key.envirPut(value);
 				};
+			};
+			if(~autoGui == true and: { PR(\clMake).v[\autoAssignMixer].notNil }) {
+				PR(\clMake).autoAssignMixer(~chan);
 			};
 		},
 		userfree: { [~chan, ~bufs].free },
