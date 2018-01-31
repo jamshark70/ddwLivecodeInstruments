@@ -41,7 +41,7 @@ available: (
 			)
 		},
 		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
-		extras: (maxTime: 0.25, decay: 0.05)
+		extras: (maxTime: 0.14, decay: 0.05)
 	),
 	tightkick: (
 		bpname: \tk,
