@@ -1,16 +1,17 @@
 // FM bass
 
 SynthDef(\fmBass, { |out, freq = 440, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbuf,
-	ratio = 0.5, index = 3, detun = 1.003, bufmod = 0, bufmodlag = 0.1,
+	ratio = 0.5, index = 3, detun = 1.003, bufmod = 0, bufmodlag = 0.1, freqlag = 0.08,
 	indexDecay = 0.1, indexEgAmt = 0.62,
 	preamp = 18, postamp = -11|
 	var indexEg = EnvGen.kr(Env.perc(0.01, indexDecay), t_gate) * indexEgAmt,
+	fLag = Lag.kr(freq, freqlag),
 	mods = VOsc.ar(
 		mbuf + Lag.kr(bufmod, bufmodlag),
-		freq * ratio * [1, detun],
+		fLag * ratio * [1, detun],
 		mul: index * (1 + indexEg)
 	),
-	cars = Osc.ar(cbuf, freq * (1 + mods)),
+	cars = Osc.ar(cbuf, fLag * (1 + mods)),
 	eg = EnvGen.kr(Env.adsr(0.01, 0.2, 0.6, 0.1), gate, doneAction: 2);
 	cars = (cars * preamp.dbamp).tanh * postamp.dbamp;
 	Out.ar(out, cars * (amp * eg));
