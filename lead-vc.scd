@@ -86,10 +86,18 @@ make: { |name|
 	], target: ~target);
 	out.mapGlobal(\index, nil, 3.86, [0.5, 10, \exp]);
 	out.mapGlobal(\detun, nil, 1.008, \mydetune);
+	out.mapGlobal(\preamp, nil, 0, [-6, 30]);
 	out.setArgDefaults([
 		\cDetune, out.globalControls[\detun].asMap,
 		\mDetune, out.globalControls[\detun].asMap,
 	]);
+	~target.doWhenReady { |chan|
+		~dist = chan.playfx({ |outbus, preamp = 0|
+			preamp = preamp.dbamp;
+			// empirically, (preamp ** 0.6) controls the volume increase
+			(In.ar(outbus, 2) * preamp).tanh / (preamp ** 0.6)
+		}, [preamp: out.globalControls[\preamp].asMap])
+	};
 	out
 },
 free: { [~target, ~cbuf, ~mbuf].free },
