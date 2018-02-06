@@ -269,7 +269,7 @@ make: { |name|
 		~child.defaults.setVoicerParms(parms, post);
 	};
 	p.v.import((abstractLiveCode: #[setPattern, valueForParm, parmIsPitch, beatsPerBar,
-		setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_]));
+		setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_]));
 	p.defaultParm = \note;
 	p.phrases = IdentityDictionary[
 		\main -> PbindProxy([p.defaultParm, \dur], nil),
