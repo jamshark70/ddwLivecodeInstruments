@@ -229,11 +229,12 @@ argPairs: [amp: 0.25],
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		var resp;
 		MultiEQ.new(2, \eq, 279.743, -3.759.dbamp, 1, \eq, 10341.84, 3.759.dbamp, 1).play(chan);
 		~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 3, 0.013676047024487, 0.24669302064117, 0.0076241645277023, 2.0019953184641, 0.7290294928589]);
-		~chorus.doWhenPlaying {
+		resp = OSCFunc(e { |msg|
 			~chorus.synth.moveToTail(chan.effectgroup);
-		};
+		}, '/n_go', s.addr, argTemplate: [~chorus.synth.nodeID]).oneShot;
 		chan.newPostSend(~rvbmc, ~rvbLevel);
 	});
 	~cbuf = Buffer.alloc(s, 4096, 1, completionMessage: { |buf|
@@ -346,6 +347,7 @@ type: \vc) => Fact(\fmclavVC);
 		make: { |name|
 			var out;
 			~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+				var resp;
 				chan.newPostSend(~rvbmc, ~rvbLevel);
 				~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 3, 0.0055924758241628, 0.44366873309786, 0.0007347533432105, 1.077997479173, 0.5687245304079]);
 				~eq = MultiEQ.new(2,
@@ -361,7 +363,9 @@ type: \vc) => Fact(\fmclavVC);
 					s = s * enh;
 					[m + s, m - s] * 0.5
 				};
-				~chorus.doWhenPlaying(e { ~chorus.synth.moveToHead(chan.effectgroup) });
+				resp = OSCFunc(e { |msg|
+					~chorus.synth.moveToTail(chan.effectgroup);
+				}, '/n_go', s.addr, argTemplate: [~chorus.synth.nodeID]).oneShot;
 			});
 
 			out = Voicer(20, ~defname, [
