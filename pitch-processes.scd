@@ -268,8 +268,8 @@ make: { |name|
 		~topNote.postDefaults.setVoicerParms(parms, post);
 		~child.defaults.setVoicerParms(parms, post);
 	};
-	p.v.import((abstractLiveCode: #[setPattern, valueForParm, parmIsPitch, beatsPerBar,
-		setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_]));
+	p.v.import((abstractLiveCode: #[setPattern, valueForParm, valueIsRest, parmIsPitch,
+		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_]));
 	p.defaultParm = \note;
 	p.phrases = IdentityDictionary[
 		\main -> PbindProxy([p.defaultParm, \dur], nil),
