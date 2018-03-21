@@ -61,7 +61,7 @@ free: {
 // pulse waves, kind of cheezy-analog-y
 SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, freqRand = 1.008, amp = 0.1,
 	widthRand = 0.3, widthCenter = 0.5, widthModRate = 0.3, widthModRand = 1.06,
-	ffreq = 2000, fDecay = 0.1, fegAmt = 0, startRq = 1, endRq = 1, rqDecay = 0.1, rqCurve = 3,
+	ffreq = 2000, fDecay = 0.1, fegAmt = 0, rq = 1, preamp = 0,
 	atk = 0.01, dcy = 0.1, sus = 0.6, rel = 0.1|
 	var numOscs = 4, lowRateRand = widthModRand.reciprocal, lowFRand = freqRand.reciprocal,
 	fRand = Array.fill(numOscs, { TExpRand.kr(lowFRand, freqRand, t_gate) }),
@@ -70,33 +70,65 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 	}),
 	sig = Mix(Pulse.ar(Lag.kr(freq * fRand * 0.5, freqlag), widths)),  // randomizing on slur is lagged too
 	feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
-	rqeg = EnvGen.kr(Env([startRq, endRq], [rqDecay], rqCurve * sign(endRq - startRq)), gate),
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
-	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rqeg);
+	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rq);
+	preamp = preamp.dbamp;
+	sig = (sig * preamp).tanh / (preamp ** 0.6);
 	Out.ar(out, (sig * (eg * amp)).dup);  // bass, don't pan
 }).add;
 
 (
 keys: #[master],
 initLevel: -5.6.dbamp,
+defname: \pulseBass,
+gcSpecs: [
+	[\ffreq, nil, 261.4, \freq],
+	[\fDecay, nil, 0.17, [0, 2, 3]],
+	[\fegAmt, nil, 5, [0, 5]],
+	[\rq, nil, 1, \myrq],
+	[\preamp, nil, -20, [-20, 5], false]
+],
 make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		~eq = MultiEQ(2, \bhipass, 105.84, 0.dbamp, 0.474).play(chan);
 	});
-	out = /*MonoPorta*/Voicer(2, \pulseBass, [freqlag: 0.08], target: ~target);
+	out = /*MonoPorta*/Voicer(2, ~defname, [freqlag: 0.08], target: ~target);
 	// out.portaTime = 0.08;
-	out.mapGlobal(\ffreq, nil, 261.4, \freq);
-	out.mapGlobal(\fDecay, nil, 0.17, [0, 2, 3]);
-	out.mapGlobal(\fegAmt, nil, 5, [0, 5]);
-	out.mapGlobal(\freqRand, nil, 1.0025, [1, 1.01, \exp]);
-	// out.mapGlobal(\startRq, nil, 1, \myrq);
-	// out.mapGlobal(\endRq, nil, 1, \myrq);
-	// out.mapGlobal(\rqDecay, nil, 0, [0, 2, 3]);
+	~gcSpecs.do { |args| out.mapGlobal(*args) };
 	out
 },
 free: { ~target.free },
 type: \vc) => Fact(\pbsVC);
+
+if('RLPFD'.asClass.notNil) {
+	SynthDef(\pulseBass303, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, freqRand = 1.008, amp = 0.1,
+		widthRand = 0.3, widthCenter = 0.5, widthModRate = 0.3, widthModRand = 1.06,
+		ffreq = 2000, fDecay = 0.1, fegAmt = 0, res = 0, dist = 0,
+		atk = 0.01, dcy = 0.1, sus = 0.6, rel = 0.1|
+		var numOscs = 4, lowRateRand = widthModRand.reciprocal, lowFRand = freqRand.reciprocal,
+		fRand = Array.fill(numOscs, { TExpRand.kr(lowFRand, freqRand, t_gate) }),
+		widths = Array.fill(numOscs, {
+			LFDNoise3.kr(widthModRate * ExpRand(lowRateRand, widthModRand), widthRand, widthCenter)
+		}),
+		sig = Mix(Pulse.ar(Lag.kr(freq * fRand * 0.5, freqlag), widths)),  // randomizing on slur is lagged too
+		feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
+		eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
+		// mul: 3 as recommended by helpfile
+		sig = RLPFD.ar(sig, (ffreq * feg).clip(20, 20000), res, dist, 6);
+		Out.ar(out, (sig * (eg * amp)).dup);  // bass, don't pan
+	}).add;
+
+	Fact(\pbsVC).v.copy
+	.put(\defname, \pulseBass303)
+	.put(\gcSpecs, [
+		[\ffreq, nil, 261.4, \freq],
+		[\fDecay, nil, 0.17, [0, 2, 3]],
+		[\fegAmt, nil, 5, [0, 5]],
+		[\res, nil, 0, [0, 1]],
+		[\dist, nil, 0, [0, 1], false]  // no autoGUI for this one
+	]) => Fact(\pbs3VC);
+};
 
 // distorted sinewaves, a bit colder
 SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, freqRand = 1.008, amp = 0.1,
