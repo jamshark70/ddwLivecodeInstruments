@@ -23,7 +23,7 @@
 		attack = 0.05, decay = 0.1, sus = 0.7, release = 0.12|
 		// -1 because you actually get sidebands around the ratio:
 		// if ratio == 6, you hear harmonics 5 and 7.
-		// To make 7 the top pitch, subtract one.
+		// To make 7 the top pitch, subtract one and play ratio 6.
 		var cDetuneLow = cDetune.reciprocal, mDetuneLow = mDetune.reciprocal,
 		cDetunes = Array.fill(n, { TExpRand.kr(cDetuneLow, cDetune, t_gate) }),
 		mDetunes = Array.fill(n, { TExpRand.kr(mDetuneLow, mDetune, t_gate) }),
@@ -39,7 +39,7 @@
 (
 (
 keys: #[master, shortrvbmc],
-initLevel: -12.dbamp,
+initLevel: -22.8.dbamp, // -12.dbamp,
 rvbLevel: -3.5.dbamp,
 // hard-coding 3 octave drop: fix later
 argPairs: [amp: 0.5],
@@ -172,7 +172,7 @@ SynthDef(\pulseLead, { |out, gate = 1, t_gate, amp = 0.1,
 
 (
 keys: #[master, shortrvbmc],
-initLevel: -9.7.dbamp,
+initLevel: -14.dbamp, // -9.7.dbamp,
 rvbLevel: -0.948.dbamp,
 argPairs: [amp: 0.5],
 make: { |name|

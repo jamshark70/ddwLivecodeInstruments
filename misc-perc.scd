@@ -174,7 +174,9 @@ database: [
 	"electrodroplet.wav" -> (parms: PbindProxy(\amp, Pkey(\amp) * 0.5, \rate, 1.7.midiratio).quant_(0)),
 	"hiphopwhstl.wav" -> (parms: PbindProxy(\amp, Pkey(\amp) * 0.5).quant_(0)),
 
-	"doubleshot.aif",
+	"doubleshot.aif" -> (
+		parms: PbindProxy(\amp, -6.dbamp).quant_(0)
+	),
 	"thinsyn.wav" -> (rate: 1.6),
 	"electronic_wiggle.wav" -> (
 		parms: PbindProxy(\amp, -14.dbamp).quant_(0)
@@ -216,7 +218,7 @@ SynthDef(\sinkik, { |out, basefreq = 50, preamp = 7.724, amp = 0.322,
 
 (
 keys: #[master, rvbmc],
-initLevel: -14.dbamp,
+initLevel: -18.5.dbamp,
 rvbLevel: -6.dbamp,
 basefreq: 50,
 make: { |name|
@@ -263,7 +265,7 @@ type: \bp) => Fact(\sinkikBP);
 (
 (
 keys: #[master, rvbmc],
-initLevel: -7.5.dbamp,
+initLevel: -11.6.dbamp, // -7.5.dbamp,
 rvbLevel: -3.dbamp,
 drumKey: \tightsnr,
 make: { |name|

@@ -36,7 +36,7 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 
 	(
 		keys: #[master, rvbmc],
-		initLevel: -12.dbamp,
+		initLevel: -20.dbamp, // -12.dbamp,
 		rvbLevel: -6.dbamp,
 		defname: \pulsepluck,
 		argPairs: [accAmt: 5, amp: 0.5],
@@ -95,7 +95,7 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 
 (
 keys: #[master, rvbmc],
-initLevel: -20.dbamp,
+initLevel: -26.dbamp, // -20.dbamp,
 rvbLevel: -2.42.dbamp,
 eventKey: \voicerNote,
 bufData: {
@@ -181,7 +181,7 @@ SynthDef(\fmpad, { |out, gate = 1, freq = 440, freqlag = 0.08,
 
 (
 keys: #[master, rvbmc],
-initLevel: -16.2.dbamp,
+initLevel: -18.dbamp, // -16.2.dbamp,
 rvbLevel: -5.3.dbamp,
 argPairs: [amp: 0.5],
 modHrm: (1..4).reciprocal,
@@ -223,7 +223,7 @@ SynthDef(\fmbrass, { |out, freq = 220, gate = 1, t_gate = 1, amp = 0.1, cbuf, mb
 
 (
 keys: #[master, rvbmc],
-initLevel: -17.5.dbamp,
+initLevel: -20.6.dbamp, // -17.5.dbamp,
 rvbLevel: -1.dbamp,
 argPairs: [amp: 0.25],
 make: { |name|
@@ -280,7 +280,7 @@ SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
 
 (
 keys: #[master, rvbmc],
-initLevel: -19.dbamp,
+initLevel: -22.dbamp, // -19.dbamp,
 rvbLevel: -6.dbamp,
 argPairs: [amp: 0.5],
 modHrm: (1..4).reciprocal,

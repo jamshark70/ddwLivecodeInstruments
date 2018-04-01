@@ -19,7 +19,7 @@ SynthDef(\fmBass, { |out, freq = 440, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbu
 
 (
 keys: #[master],
-initLevel: -8.6.dbamp, // 0.75,
+initLevel: -12.5.dbamp, // -8.6, 0.75,
 argPairs: Pbind(
 	\bufmod, Pwhite(0, 10.999, inf),
 	\amp, 0.5,
@@ -79,7 +79,7 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 
 (
 keys: #[master],
-initLevel: -5.6.dbamp,
+initLevel: -4.5.dbamp,
 defname: \pulseBass,
 gcSpecs: [
 	[\ffreq, nil, 261.4, \freq],
@@ -143,12 +143,14 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 	rqeg = EnvGen.kr(Env([startRq, endRq], [rqDecay], rqCurve * sign(endRq - startRq)), gate),
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2),
 	preDistAmp, distAmp, ampCorrect;
-	sig = Mix((sig * preamp.dbamp).tanh);  // independently distort sinewaves
+	preamp = preamp.dbamp;
+	sig = Mix((sig * preamp).tanh);  // independently distort sinewaves
 	// volume changes with preamp -- compensate by RMS ratio
 	// mean would divide both by the same amount, which cancels out, so omit the mean division
-	preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
-	distAmp = RunningSum.ar(sig.squared, 441).sqrt;
-	ampCorrect = min(1, preDistAmp / distAmp);
+	// preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
+	// distAmp = RunningSum.ar(sig.squared, 441).sqrt;
+	// ampCorrect = min(1, preDistAmp / distAmp);
+	ampCorrect = preamp ** -0.6;
 	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rqeg);
 	Out.ar(out, (sig * (eg * amp * ampCorrect)).dup);
 }).add;
