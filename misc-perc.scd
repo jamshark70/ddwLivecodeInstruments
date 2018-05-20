@@ -241,7 +241,7 @@ make: { |name|
 		parmMap: (ampPair: (
 			alias: #[amp, dcy2],
 			// 0.04 distinguishes for rolls -- a bit hacky but we only have the data, not the key, in the event
-			$o: [0.75, 0.4], $_: [0.3, 0.0972], $=: [0.3, 0.04]
+			$o: [0.75, 0.0972], $_: [0.3, 0.0972], $=: [0.3, 0.04]
 		)),
 		defaults: (instrument: \sinkik, basefreq: ~basefreq),
 		retrigFreq: 12,  // 12 notes per beat
@@ -264,10 +264,10 @@ type: \bp) => Fact(\sinkikBP);
 // rollable 606 snare
 (
 (
-keys: #[master, rvbmc],
+keys: #[master, shortrvbmc],
 initLevel: -11.6.dbamp, // -7.5.dbamp,
-rvbLevel: -3.dbamp,
-drumKey: \tightsnr,
+rvbLevel: -3.8.dbamp,
+drumKey: \tightsnr,  // don't delete -- pulls the parmMap from drumBP
 make: { |name|
 	BP(name).free;
 	PR(\abstractLiveCode).chuck(BP(name), nil, (
@@ -275,7 +275,7 @@ make: { |name|
 		initLevel: ~initLevel,
 		rvbLevel: ~rvbLevel,
 		master: ~master,
-		rvbmc: ~rvbmc,
+		rvbmc: ~shortrvbmc,
 		drumKey: ~drumKey,
 		userprep: {
 			var spec = Fact(\drumBP).available[~drumKey];
