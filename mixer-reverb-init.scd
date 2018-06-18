@@ -16,6 +16,11 @@ var initMixers = {
 			ReplaceOut.ar(out, FreeVerb2.ar(in[0], in[1], mix, room, damp, amp));
 		}).add;
 
+		// \loadAllCl.eval takes half a second to evaluate (it's a LOT of code)
+		// so server messages are late, causing the above synthdef not to be ready
+		// so we wait until the def is there
+		s.sync;
+
 		if((~master.tryPerform(\isRunning) ? false).not) {
 			~master = MixerChannel(\master, s, 2, 2, level: 1);
 		};
