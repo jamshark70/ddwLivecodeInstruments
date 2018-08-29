@@ -11,8 +11,9 @@ var initMixers = {
 			// BusDict.control(z, 2, \reserved2);
 		};
 
-		SynthDef(\cll_freeverb2, { |out, mix = 0.25, room = 0.15, damp = 0.5, amp = 1|
+		SynthDef(\cll_freeverb2, { |out, mix = 0.25, room = 0.15, damp = 0.5, amp = 1, hpfreq = 200|
 			var in = In.ar(out, 2);
+			in = HPF.ar(in, hpfreq);
 			ReplaceOut.ar(out, FreeVerb2.ar(in[0], in[1], mix, room, damp, amp));
 		}).add;
 
