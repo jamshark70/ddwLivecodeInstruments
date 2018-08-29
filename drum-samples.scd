@@ -1,7 +1,8 @@
 { |... id|
 	var spec;
 	if(id.size > 0) {
-		id.do { |id|
+		// collect, to post objects rather than keys
+		id.collect { |id|
 			spec = Fact(\drumBP).available[id];
 			Fact(\drumBP).chuck(BP(spec.tryPerform(\at, \bpname) ?? { id }), nil, (drumID: id));
 		};
@@ -272,7 +273,8 @@ make: { |name|
 		// drumThing: (buf, channel, defaults, postDefaults...)
 		loadDrums: {
 			var parmMap = IdentityDictionary.new,
-			volAdjust = if(~drumID.size > 1) { 3.dbamp } { 1 };
+			volAdjust = if(~drumID.size > 1) { 3.dbamp } { 1 },
+			path;
 			~drums = ~drumID.collect { |key, i|
 				var thing = ~available[key],
 				chan = MixerChannel((~collIndex ++ key).asSymbol, s,
@@ -289,8 +291,13 @@ make: { |name|
 					}
 				), out;
 				~addThingToParmMap.(thing, i);
+				if(PathName(thing[\path]).isAbsolutePath) {
+					path = thing[\path];
+				} {
+					path = ~dir +/+ thing[\path];
+				};
 				out = (
-					buf: Buffer.readAndQuery(s, ~dir +/+ thing[\path], thing[\start] ? 0,
+					buf: Buffer.readAndQuery(s, path, thing[\start] ? 0,
 						completionFunc: e { |buf| ~drums[i][\time] = buf.duration }),
 					chan: chan,
 					start: thing[\start] ? 0,
@@ -490,7 +497,10 @@ make: { |name|
 			~event[\chan] = ~chan;
 			bufStart = thing[\bufStart] ?? { #[0] };
 			~bufs = thing[\paths].collect { |path, i|
-				Buffer.readAndQuery(s, ~dir +/+ path, bufStart.wrapAt(i));
+				if(PathName(path).isRelativePath) {
+					path = ~dir +/+ path;
+				};
+				Buffer.readAndQuery(s, path, bufStart.wrapAt(i));
 			};
 			// wrap drum-specific defaults around the process defaults
 			#[defaults, postDefaults].do { |key|
@@ -528,7 +538,7 @@ make: { |name|
 { |... id|
 	var spec;
 	if(id.size > 0) {
-		id.do { |id|
+		id.collect { |id|
 			spec = Fact(\hhBP).available[id];
 			Fact(\hhBP).chuck(BP(spec.tryPerform(\at, \bpname) ?? { id }), nil, (drumID: id));
 		};
