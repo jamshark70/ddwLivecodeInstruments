@@ -10,6 +10,12 @@ if(Library.at(\clUseBufMode).isNil) {
 // proc events can be an event or a pattern
 // voicer argPairs can override
 // then, setDefaults can override the override
+
+// in a voicer factory:
+// argPairs: go into defaults (pre-user-pattern)
+// postArgs: analogous to postDefaults (post-user-pattern)
+// extraChildParms: for chord processes, values to put into the arpeggiator object
+// extraParms: values to put into the BP object
 (
 Proto {
 	~noop = Pfunc { |ev| ev };
@@ -185,6 +191,17 @@ PR(\arpeg1).clone {
 				.asPattern(~notePattern, inEvent),
 			// \mode, (Pfunc({ ~currentChord.modeForEvent(inEvent) })),
 			\mode, BPStream(\mode),
+			// user code needs to depend on degree/octave, for other pitch processes
+			// but this process represents pitch as a SequenceNote, so, extract
+			#[degree, octave], Pfunc { |ev|
+				var degree = ev[\note].tryPerform(\asFloat),
+				mode = ev[\mode].asMode;
+				if(degree.notNil) {
+					[degree % mode.scale.size, degree div: mode.scale.size]
+				} {
+					[Rest(0), Rest(5)]
+				}
+			},
 			\accent, Pseq([inEvent[\top][\accent] ?? { false }, Pn(false, inf)]),
 			\acc, Pkey(\accent).collect(_.asInteger)
 		);
@@ -275,7 +292,10 @@ make: { |name|
 		\main -> PbindProxy([p.defaultParm, \dur], nil),
 		\rest -> PbindProxy(\dur, Pfuncn { Rest(~clock.beatsPerBar) })
 	];
-	p.phraseDurs = IdentityDictionary[\main -> 4];
+	p.phraseDurs = IdentityDictionary[
+		\main -> { ~clock.beatsPerBar },
+		\rest -> { ~clock.beatsPerBar }
+	];
 	p.phraseStrings = MultiLevelIdentityDictionary.new;
 	p.parmMap = (
 		note: (isPitch: true),
@@ -347,7 +367,12 @@ make: { |name|
 								\acc, Pkey(\accent).collect(_.asInteger)
 							)
 						),
-						Pfindur(bp.phraseDurs[phrase], bp.phrases[phrase])
+						if(bp.phraseDurs[phrase].notNil) {
+							Pfindur(bp.phraseDurs[phrase], bp.phrases[phrase])
+						} {
+							bp.phrases[phrase]
+						},
+						(isTopNotePattern: true)
 					)
 				} {
 					"Phrase % not found in BP(%)".format(phrase, ~bpKey.asCompileString).warn;
@@ -447,6 +472,12 @@ make: { |name|
 	};
 	*/
 
+	// rests are now inside topNote. Need to be aware of the clock.
+	p['clock_'] = { |clock|
+		~clock = clock;
+		~topNote.put(\clock, clock);
+		currentEnvironment
+	};
 	TempoClock.default => p;
 	p
 }, type: \bp, defaultName: \ch) => Fact(\chordBP);
