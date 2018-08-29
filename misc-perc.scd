@@ -217,6 +217,7 @@ SynthDef(\sinkik, { |out, basefreq = 50, preamp = 7.724, amp = 0.322,
 }).add;
 
 (
+defaultName: \sk,
 keys: #[master, rvbmc],
 initLevel: -18.5.dbamp,
 rvbLevel: -6.dbamp,
@@ -229,8 +230,11 @@ make: { |name|
 		master: ~master,
 		userprep: {
 			~chan = MixerChannel(~collIndex, s, 1, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
-				~eq = MultiEQ(1, \bhipass, 57.654, 0.dbamp, 0.489, \eq, 11882.268, 8.571.dbamp, 0.728)
-				.play(chan);
+				~eq = MultiEQ(1,
+					\bhipass, 57.654, 0.0.dbamp, 0.444,
+					\eq, 67.401, 3.158.dbamp, 0.728,
+					\eq, 299.854, -4.361.dbamp, 1.0
+				).play(chan);
 			});
 			~event.put(\chan, ~chan);
 		},
@@ -264,6 +268,7 @@ type: \bp) => Fact(\sinkikBP);
 // rollable 606 snare
 (
 (
+defaultName: \sdr,
 keys: #[master, shortrvbmc],
 initLevel: -11.6.dbamp, // -7.5.dbamp,
 rvbLevel: -3.8.dbamp,

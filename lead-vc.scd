@@ -181,7 +181,7 @@ make: { |name|
 		chan.newPostSend(~shortrvbmc, ~rvbLevel);
 	});
 
-	out = Voicer(2, \pulseLead, target: ~target);
+	out = Voicer(15, \pulseLead, target: ~target);
 	// out.mapGlobal(\pwidth, nil, 0.5, [0, 1]);
 	out.mapGlobal(\ffreq, nil, 1800, \freq);
 	out.mapGlobal(\gain, nil, 1, [0, 3.999]);

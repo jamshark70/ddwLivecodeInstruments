@@ -79,8 +79,9 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 
 (
 keys: #[master],
-initLevel: -4.5.dbamp,
+initLevel: -12.dbamp, // -4.5.dbamp,
 defname: \pulseBass,
+argPairs: Pbind(\amp, 0.5),
 gcSpecs: [
 	[\ffreq, nil, 261.4, \freq],
 	[\fDecay, nil, 0.17, [0, 2, 3]],
@@ -150,7 +151,7 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 	// preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
 	// distAmp = RunningSum.ar(sig.squared, 441).sqrt;
 	// ampCorrect = min(1, preDistAmp / distAmp);
-	ampCorrect = preamp ** -0.6;
+	ampCorrect = 1; // preamp ** -0.6;
 	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rqeg);
 	Out.ar(out, (sig * (eg * amp * ampCorrect)).dup);
 }).add;
@@ -175,7 +176,7 @@ make: { |name|
 	// out.mapGlobal(\startRq, nil, 1, \myrq);
 	// out.mapGlobal(\endRq, nil, 1, \myrq);
 	// out.mapGlobal(\rqDecay, nil, 0, [0, 2, 3]);
-	out.mapGlobal(\preamp, nil, 0, [-40, 40]);
+	out.mapGlobal(\preamp, nil, 0, [-20, 100]);
 	out
 },
 free: { ~target.free },
