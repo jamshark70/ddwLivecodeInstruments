@@ -29,7 +29,8 @@ available: (
 			~eq = MultiEQ(2,
 				\bhipass, 67.401, 0.dbamp, 0.534,
 				\eq, 149.762, -4.662.dbamp, 1.147,
-				\eq, 4818.807, 7.669.dbamp, 0.309
+				\eq, 4818.807, 7.669.dbamp, 0.309,
+				\eq, 211.912, 4.361.dbamp, 1.0  // mid bump for mobile speakers
 			).play(chan);
 		},
 		postDefaults: Plazy {
@@ -54,9 +55,11 @@ available: (
 				\eq, 132.629, -9.474.dbamp, 0.085,
 				\eq, 166.199, -8.271.dbamp, 0.055,
 				\eq, 223.238, -7.669.dbamp, 0.055,
-				\bhipass, 71, 0.dbamp, 0.549,
-				\eq, 4735.893, 3.459.dbamp, 1,
-				\eq, 274.929, -1.955.dbamp, 1
+				\bhipass, 71.0, 0.0.dbamp, 0.549,
+				\eq, 4735.893, 3.459.dbamp, 1.0,
+				\eq, 204.682, 4.06.dbamp, 1.0,
+				\eq, 197.699, -8.271.dbamp, 0.085,
+				\eq, 270.199, -6.466.dbamp, 0.07
 			).play(chan);
 		},
 		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
@@ -73,8 +76,11 @@ available: (
 				\eq, 123.733, -8.271.dbamp, 0.16,
 				\eq, 178.147, -7.368.dbamp, 0.085,
 				\eq, 315.88, -7.368.dbamp, 0.07,
-				\bhipass, 71, 0.dbamp, 0.414,
-				\eq, 194.297, -4.962.dbamp, 1.192
+				\bhipass, 71.0, 0.0.dbamp, 0.414,
+				\eq, 201.16, 5.564.dbamp, 0.833,
+				\eq, 208.266, -8.571.dbamp, 0.1,
+				\eq, 265.55, -7.97.dbamp, 0.085,
+				\eq, 132.629, -6.466.dbamp, 0.698
 			).play(chan);
 		},
 		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
