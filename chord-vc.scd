@@ -166,10 +166,13 @@ SynthDef(\fmpad, { |out, gate = 1, freq = 440, freqlag = 0.08,
 	var n = 8,
 	r_detun = detun.reciprocal,
 	detunes = Array.fill(n, { TRand.kr(0, 1, t_rerand).linexp(0, 1, r_detun, detun) }),
-	indexEg = EnvGen.kr(Env([0, acc * modAmt, 0], [atk, modDcy], -3), gate),
-	accent = accMul + 1,
+	// acc = 0: modAmt
+	// acc = 1: modAmt * accMul
+	// multiplier is (accMul - 1) * acc + 1
+	accent = (accMul - 1) * acc + 1,
+	indexEg = EnvGen.kr(Env([0, modAmt * accent, 0], [atk, modDcy], -1), gate),
 	laggedFreq = Lag.kr(freq, freqlag),
-	mods = Osc.ar(mbuf, laggedFreq * ratio * detunes, mul: index * accent * (1 + indexEg)),
+	mods = Osc.ar(mbuf, laggedFreq * ratio * detunes, mul: index * /*accent **/ (1 + indexEg)),
 	cars = Osc.ar(cbuf, laggedFreq * detunes * (1 + mods)),
 	width = min(panWidth, 1.0 - abs(panCenter)),
 
@@ -198,7 +201,7 @@ make: { |name|
 	out = Voicer(20, \fmpad, [mbuf: ~mbuf.bufnum, cbuf: ~cbuf.bufnum, amp: 0.5], target: ~target);
 	out.mapGlobal(\index, nil, 0.392, [0.1, 10, \exp]);
 	out.mapGlobal(\ratio, nil, 2, SnapControlSpec(1, 10, \lin, 1).snap_(0.15));
-	out.mapGlobal(\modAmt, nil, 1.5, [0, 3]);
+	out.mapGlobal(\modAmt, nil, 1.5, [0, 10]);
 	out
 },
 free: { [~target, ~cbuf, ~mbuf].free },
