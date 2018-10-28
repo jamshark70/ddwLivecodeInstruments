@@ -133,9 +133,10 @@ if('RLPFD'.asClass.notNil) {
 
 // distorted sinewaves, a bit colder
 SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, freqRand = 1.008, amp = 0.1,
-	preamp = 0,
+	preamp = 0.1, bufnum = 0, preTanhAmp = 20,
 	ffreq = 2000, fDecay = 0.1, fegAmt = 0, startRq = 1, endRq = 1, rqDecay = 0.1, rqCurve = 3,
-	atk = 0.01, dcy = 0.1, sus = 0.6, rel = 0.1|
+	atk = 0.01, dcy = 0.1, sus = 0.6, rel = 0.1,
+	delay = 0.012|
 	var numOscs = 4, lowFRand = freqRand.reciprocal,
 	fRand = Array.fill(numOscs, { TExpRand.kr(lowFRand, freqRand, t_gate) }),
 	sig = SinOsc.ar(Lag.kr(freq * fRand, freqlag)),  // randomizing on slur is lagged too
@@ -144,28 +145,54 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 	rqeg = EnvGen.kr(Env([startRq, endRq], [rqDecay], rqCurve * sign(endRq - startRq)), gate),
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2),
 	preDistAmp, distAmp, ampCorrect;
-	preamp = preamp.dbamp;
-	sig = Mix((sig * preamp).tanh);  // independently distort sinewaves
+	sig = Shaper.ar(bufnum, sig * preamp);
+	// decorrelate
+	sig.do { |chan, i|
+		if(#[1, 2].includes(i % 4)) {
+			sig[i] = DelayC.ar(chan, 0.1, SinOsc.kr(Rand(0.1, 0.2), Rand(0, pi), delay * 0.5, delay));
+		};
+	};
+	sig = Mix((sig * (preamp * preTanhAmp)).tanh.clump(2));  // independently distort sinewaves
 	// volume changes with preamp -- compensate by RMS ratio
 	// mean would divide both by the same amount, which cancels out, so omit the mean division
-	// preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
-	// distAmp = RunningSum.ar(sig.squared, 441).sqrt;
-	// ampCorrect = min(1, preDistAmp / distAmp);
-	ampCorrect = 1; // preamp ** -0.6;
+	preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
+	distAmp = RunningSum.ar(sig[0].squared, 441).sqrt;
+	ampCorrect = min(1, preDistAmp / distAmp);
 	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rqeg);
-	Out.ar(out, (sig * (eg * amp * ampCorrect)).dup);
+	Out.ar(out, (sig * (eg * amp * ampCorrect)));
 }).add;
 
 (
 keys: #[master],
 initLevel: -22.dbamp,  // for some reason, this synth is LOUD
 argPairs: [amp: 0.5],
+endRate: 12,
+makeShapeTable: { |endRate = 12|
+	var out = Array.new,
+	theta = 0.0,
+	n = 512,
+	baseRate = 2pi / n;
+
+	while { theta < 6pi } {
+		out = out.add(sin(theta));
+		theta = theta + (baseRate * theta.linexp(0, 6pi, 1, endRate));
+	};
+
+	out = (out.drop(1).reverse).neg ++ out;
+	out.resamp1(2048)
+},
 make: { |name|
 	var out;
+	~shapeBuf = Buffer.sendCollection(
+		s,
+		~makeShapeTable.(~endRate).as(Signal).asWavetable,
+		1
+	);
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		~eq = MultiEQ(2, \bhipass, 147.185, 0.dbamp, 0.504).play(chan);
 	});
 	out = /*MonoPorta*/Voicer(2, \distBass, args: [
+		bufnum: ~shapeBuf.bufnum,
 		freqRand: 1.0025, startRq: 1, endRq: 1, rqDecay: 1, freqlag: 0.08
 	], target: ~target);
 	// out.portaTime = 0.08;
@@ -176,7 +203,7 @@ make: { |name|
 	// out.mapGlobal(\startRq, nil, 1, \myrq);
 	// out.mapGlobal(\endRq, nil, 1, \myrq);
 	// out.mapGlobal(\rqDecay, nil, 0, [0, 2, 3]);
-	out.mapGlobal(\preamp, nil, 0, [-20, 100]);
+	out.mapGlobal(\preamp, nil, 0.15, [0.1, 0.999, 2]);
 	out
 },
 free: { ~target.free },
