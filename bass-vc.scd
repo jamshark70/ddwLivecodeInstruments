@@ -136,28 +136,34 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 	preamp = 0.1, bufnum = 0, preTanhAmp = 20,
 	ffreq = 2000, fDecay = 0.1, fegAmt = 0, startRq = 1, endRq = 1, rqDecay = 0.1, rqCurve = 3,
 	atk = 0.01, dcy = 0.1, sus = 0.6, rel = 0.1,
-	delay = 0.012|
+	delay = 0.012, distMix = 0.5, hpfreq = 260|
 	var numOscs = 4, lowFRand = freqRand.reciprocal,
 	fRand = Array.fill(numOscs, { TExpRand.kr(lowFRand, freqRand, t_gate) }),
 	sig = SinOsc.ar(Lag.kr(freq * fRand, freqlag)),  // randomizing on slur is lagged too
-	oscMix = Mix(sig),
+	oscMix = Mix(sig),  // for volume compensation, below
 	feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
 	rqeg = EnvGen.kr(Env([startRq, endRq], [rqDecay], rqCurve * sign(endRq - startRq)), gate),
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2),
-	preDistAmp, distAmp, ampCorrect;
-	sig = Shaper.ar(bufnum, sig * preamp);
+	preDistAmp, distAmp, ampCorrect,
+	distorted = Shaper.ar(bufnum, sig * preamp);
 	// decorrelate
-	sig.do { |chan, i|
+	distorted.do { |chan, i|
 		if(#[1, 2].includes(i % 4)) {
-			sig[i] = DelayC.ar(chan, 0.1, SinOsc.kr(Rand(0.1, 0.2), Rand(0, pi), delay * 0.5, delay));
+			distorted[i] = DelayC.ar(chan, 0.1, SinOsc.kr(Rand(0.1, 0.2), Rand(0, pi), delay * 0.5, delay));
 		};
 	};
-	sig = Mix((sig * (preamp * preTanhAmp)).tanh.clump(2));  // independently distort sinewaves
+	distorted = Mix((distorted * (preamp * preTanhAmp)).tanh.clump(2));  // independently distort sinewaves
 	// volume changes with preamp -- compensate by RMS ratio
 	// mean would divide both by the same amount, which cancels out, so omit the mean division
 	preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
-	distAmp = RunningSum.ar(sig[0].squared, 441).sqrt;
+	distAmp = RunningSum.ar(distorted[0].squared, 441).sqrt;
 	ampCorrect = min(1, preDistAmp / distAmp);
+	// slight distortion on original oscillator, for beef
+	// empirically, 12 dB boost = * 4 --> tanh gives a nice spectrum
+	sig = (sig * 4).tanh;
+	// get LF from sig and only HF from distorted
+	distorted = HPF.ar(HPF.ar(distorted, hpfreq), hpfreq);
+	sig = XFade2.ar(Mix(sig.clump(2)), distorted, distMix * 2 - 1);
 	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rqeg);
 	Out.ar(out, (sig * (eg * amp * ampCorrect)));
 }).add;
@@ -189,7 +195,7 @@ make: { |name|
 		1
 	);
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
-		~eq = MultiEQ(2, \bhipass, 147.185, 0.dbamp, 0.504).play(chan);
+		~eq = MultiEQ(2, \bhipass, 107.185, 0.dbamp, 0.504).play(chan);
 	});
 	out = /*MonoPorta*/Voicer(2, \distBass, args: [
 		bufnum: ~shapeBuf.bufnum,
