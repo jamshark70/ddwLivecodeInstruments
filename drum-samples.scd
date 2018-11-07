@@ -23,13 +23,13 @@ available: (
 		bpname: \dk,
 		// path: "deep_dance_kick_3.aif",
 		path: "round_808_kick.aif",
-		level: -13.5.dbamp, // -9, -6.8.dbamp,
+		level: -10.04.dbamp, // -13.5, -9, -6.8.dbamp,
 		rvbLevel: nil,
 		fx: { |chan|
 			~eq = MultiEQ(2,
 				\bhipass, 67.401, 0.dbamp, 0.534,
 				\eq, 149.762, -4.662.dbamp, 1.147,
-				\eq, 4818.807, 7.669.dbamp, 0.309,
+				\eq, 4818.807, 8.271.dbamp, 0.983,
 				\eq, 211.912, 4.361.dbamp, 1.0  // mid bump for mobile speakers
 			).play(chan);
 		},
@@ -48,18 +48,18 @@ available: (
 	tightkick: (
 		bpname: \tk,
 		path: "lovely-kick.aif",
-		level: -10.4.dbamp, // -4.6.dbamp, // -3.1.dbamp,
+		level: -7.9.dbamp, // -10.4, -4.6.dbamp, // -3.1.dbamp,
 		rvbLevel: nil,
 		fx: { |chan|
 			~eq = MultiEQ.new(2,
-				\eq, 132.629, -9.474.dbamp, 0.085,
-				\eq, 166.199, -8.271.dbamp, 0.055,
-				\eq, 223.238, -7.669.dbamp, 0.055,
-				\bhipass, 71.0, 0.0.dbamp, 0.549,
-				\eq, 4735.893, 3.459.dbamp, 1.0,
-				\eq, 204.682, 4.06.dbamp, 1.0,
-				\eq, 197.699, -8.271.dbamp, 0.085,
-				\eq, 270.199, -6.466.dbamp, 0.07
+				\eq, 382.329, -9.474.dbamp, 0.04,
+				\eq, 139.718, -9.173.dbamp, 0.07,
+				\eq, 197.699, -10.376.dbamp, 0.085,
+				\eq, 439.277, -7.068.dbamp, 0.085,
+				\eq, 569.907, -7.97.dbamp, 0.07,
+				\bhipass, 56.662, 0.0.dbamp, 0.668,
+				\eq, 235.17, 4.962.dbamp, 1.0,
+				\eq, 4121.927, 3.759.dbamp, 1.0
 			).play(chan);
 		},
 		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
