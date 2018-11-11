@@ -611,7 +611,11 @@ make: { |name|
 			ev
 		},
 		modeKeys: #[mode, root, scale, tuning, octave],
-		setDefault: { |key, value| ~defaults.setDefault(key, value) },
+		setDefault: { |... pairs|
+			pairs.pairsDo { |key, value|
+				~defaults.setDefault(key, value)
+			};
+		},
 		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
 	PR(\abstractLiveCode).canWrap = false;
