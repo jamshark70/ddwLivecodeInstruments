@@ -237,9 +237,12 @@ make: { |name|
 				).play(chan);
 			});
 			~event.put(\chan, ~chan);
+			~preampCtl = GenericGlobalControl(\preamp, nil, 7.724, [0, 40]);
+			~defaults.put(\preamp, ~preampCtl.asMap);
+			~globalControls = [~preampCtl];  // publish for mobile interface
 		},
 		userfree: {
-			~chan.free;
+			[~chan, ~preampCtl].free;
 		},
 		defaultParm: \ampPair,
 		parmMap: (ampPair: (
