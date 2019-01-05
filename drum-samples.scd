@@ -57,9 +57,9 @@ available: (
 				\eq, 197.699, -10.376.dbamp, 0.085,
 				\eq, 439.277, -7.068.dbamp, 0.085,
 				\eq, 569.907, -7.97.dbamp, 0.07,
-				\bhipass, 56.662, 0.0.dbamp, 0.668,
+				\bhipass, 56.662, 0.0.dbamp, 0.504,  // 0.668,  higher Q --> more sub
 				\eq, 235.17, 4.962.dbamp, 1.0,
-				\eq, 4121.927, 3.759.dbamp, 1.0
+				\eq, 4121.927, 10.97.dbamp, 1.0  // +11 dB *very unusual* but this drum doesn't cut thru
 			).play(chan);
 		},
 		parmMap: (ampBuf: ($_: 0.4, $o: 0.75, $x: 1, $*: 0.75)),
@@ -304,7 +304,7 @@ make: { |name|
 				};
 				out = (
 					buf: Buffer.readAndQuery(s, path, thing[\start] ? 0,
-						completionFunc: e { |buf| ~drums[i][\time] = buf.duration }),
+						completionFunc: inEnvir { |buf| ~drums[i][\time] = buf.duration }),
 					chan: chan,
 					start: thing[\start] ? 0,
 					postDefaults: thing[\postDefaults],
