@@ -149,7 +149,7 @@ make: { |name|
 	out.mapGlobal(\vTimeSens, nil, 0.8, [0, 1]);
 	out.mapGlobal(\width, nil, 0, [0, 1]);
 	out.mapGlobal(\pRandWidth, nil, 0, [0, 0.4]);
-	defer(e { \vcToDefaultBP.eval(name, ~defaultBP) }, 0.25);
+	defer(inEnvir { \vcToDefaultBP.eval(name, ~defaultBP) }, 0.25);
 	out
 },
 free: { [~target, ~buf].free },
@@ -235,7 +235,7 @@ make: { |name|
 		var resp;
 		MultiEQ.new(2, \eq, 279.743, -3.759.dbamp, 1, \eq, 10341.84, 3.759.dbamp, 1).play(chan);
 		~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 3, 0.013676047024487, 0.24669302064117, 0.0076241645277023, 2.0019953184641, 0.7290294928589]);
-		resp = OSCFunc(e { |msg|
+		resp = OSCFunc(inEnvir { |msg|
 			~chorus.synth.moveToTail(chan.effectgroup);
 		}, '/n_go', s.addr, argTemplate: [~chorus.synth.nodeID]).oneShot;
 		chan.newPostSend(~rvbmc, ~rvbLevel);
@@ -366,7 +366,7 @@ type: \vc) => Fact(\fmclavVC);
 					s = s * enh;
 					[m + s, m - s] * 0.5
 				};
-				resp = OSCFunc(e { |msg|
+				resp = OSCFunc(inEnvir { |msg|
 					~chorus.synth.moveToTail(chan.effectgroup);
 				}, '/n_go', s.addr, argTemplate: [~chorus.synth.nodeID]).oneShot;
 			});
@@ -387,3 +387,58 @@ type: \vc) => Fact(\fmclavVC);
 		type: \vc
 	) => Fact(\anapadVC);
 }.value;
+
+(
+SynthDef(\fmEp, { |out, gate = 1, freq = 440, amp = 0.1, detun = 1.004,
+	mix1 = 0.5, mix2 = 0.3545,
+	carSens = 0.7, modSens = 0.5, modPitchOctave = 1, modPitchBaseFreq = 260, carPitchOctave = 1.25,
+	acc = 0|
+	var oneFmPair = { |freq, index, ratio, modCarDetun, detun,
+		modAtk, modDcy, modSus, modRel, modEgAmt = 1,
+		carAtk, carDcy, carSus, carRel|
+		var detunFreq = freq * detun,
+		modEg = EnvGen.kr(Env([0, 1, modSus, 0], [modAtk, modDcy, modRel], -4)),
+		mod = SinOsc.ar([freq, detunFreq] * ratio, 0, index * (modEg * modEgAmt)),
+		carEg = EnvGen.kr(Env([0, 1, carSus, 0, 0], [carAtk, carDcy, carRel, 0.1], -4, releaseNode: 3), gate),
+		car = SinOsc.ar([freq, detunFreq] * (1 + mod), 0, carEg);
+		car
+	},
+	// vel = Latch.kr(gate, gate),  // normal voicer use
+	vel = acc * 0.6 + 0.4,  // chucklib-livecode use
+	pitchOctave = max(1, (freq / modPitchBaseFreq).log2),
+	// indexAdjust = pitchOctave * modPitchOctave,
+	indexAdjust = pitchOctave.linlin(-4, 4, 7, -3),
+	tine = oneFmPair.(freq, 2.129 + indexAdjust, 1, 1.004, detun,
+		0.01, 0.08, 0.3, 5, Sensitivity.kr(1, vel, modSens) * 1.707,
+		0.01, 0.08, 0.6, 7
+	),
+	attack = oneFmPair.(freq, 1.652 + indexAdjust, 8, 1.042, detun,
+		0.01, 0.08, 0.3, 5, 6.261,
+		0.01, 0.08, 0.57, 1.38
+	),
+	sig = (tine * mix1) + (attack * mix2);
+	DetectSilence.ar(sig, doneAction: 2);
+	Out.ar(out, Pan2.ar(sig, [-0.5, 0.5], amp * ((carPitchOctave - 1) * pitchOctave + 1) * Sensitivity.kr(1, vel, carSens)));
+}).add;
+
+(
+keys: #[master, rvbmc],
+initLevel: -12.dbamp,
+rvbLevel: -5.3.dbamp,
+argPairs: [amp: 0.5],
+make: { |name|
+	var out;
+	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+		chan.newPostSend(~rvbmc, ~rvbLevel);
+		~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 4, 0.015874010519682, 0.14350358313889, 0.0028126874427921, 2.248394742275, 0.14030037231906]);
+		~eq = MultiEQ(2, \eq, 299.854, 4.662.dbamp, 1.005).play(chan);
+	});
+
+	out = Voicer(25, \fmEp, [], target: ~target);
+	out.mapGlobal(\modSens, nil, 0.8, [0, 1]);
+	out.mapGlobal(\carSens, nil, 0.7, [0, 1]);
+	out
+},
+free: { ~target.free },
+type: \vc) => Fact(\epVC);
+);
