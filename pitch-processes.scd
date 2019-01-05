@@ -180,7 +180,7 @@ PR(\arpeg1).clone {
 				if(~currentChordSize.notNil and: { count >= ~currentChordSize }) {
 					// if we do this now, it'll release the nodes we want to slur
 					// must wait until the nodes are updated -- then this will check for leftovers
-					thisThread.clock.sched(0.05, e {
+					thisThread.clock.sched(0.05, inEnvir {
 						ev[\voicer].tryPerform(\releaseSustainingBefore, ~currentChordSec,
 							ev[\voicer].target.server.latency);
 					});
