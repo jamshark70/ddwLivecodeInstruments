@@ -3,8 +3,9 @@
 	if(id.size > 0) {
 		// collect, to post objects rather than keys
 		id.collect { |id|
-			spec = Fact(\drumBP).available[id];
-			Fact(\drumBP).chuck(BP(spec.tryPerform(\at, \bpname) ?? { id }), nil, (drumID: id));
+			var firstID = id.asArray[0];
+			spec = Fact(\drumBP).available[firstID];
+			Fact(\drumBP).chuck(BP(spec.tryPerform(\at, \bpname) ?? { firstID }), nil, (drumID: id));
 		};
 	} {
 		"Please supply drum IDs as arguments".warn;
@@ -552,3 +553,129 @@ make: { |name|
 		"Please supply drum IDs as arguments".warn;
 	};
 } => Func(\hh);
+
+// /make(break:b(path:"...",gridOffset:n,gridSamples:o,clips:(...)));
+(
+PR(\abstractLiveCode).copy.putAll((
+	event: (eventKey: \singleSynthPlayer),
+	userprep: {
+		~chan = MixerChannel(~collIndex, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
+			chan.newPostSend(~rvbmc, ~rvbLevel);
+			~fx.eval;
+		});
+		~event[\chan] = ~chan;
+		~buf = Buffer.readAndQuery(s, ~path, completionFunc: inEnvir { |buf|
+			// currentEnvironment.postln;
+			~loopTempo = ~getLoopTempo.(buf.sampleRate);
+			~bufFrames = ~buf.numFrames;
+			~defaults.put(\instrument,
+				switch(~buf.numChannels)
+				{ 1 } { \bufGrainPan }
+				{ 2 } { \bufGrainPan2 }
+			);
+		});
+		~defaults[\bufnum] = ~buf.bufnum;
+		~clips = ~clips.collect { |indices|
+			~gridOffset + ((~gridSamples * ~clipDur) * indices)
+		};
+	},
+	userfree: {
+		[~chan, ~buf].free;
+	},
+	defaultParm: \clip,
+	parmMap: (
+		clip: (
+			alias: #[start, rateMul],
+			convertFunc: { |key|
+				if(key.isKindOf(Char)) {
+					if(~clips[key].notNil) {
+						if(key.isUpper) {
+							[~clips[key], 2]
+						} {
+							[~clips[key], 1]
+						}
+					} {
+						[Rest(0), 1]
+					}
+				} {
+					nil
+				}
+			}
+		)
+	),
+	time: Pkey(\dur) / Ptempo() - Pkey(\attack) - Pkey(\decay),
+	// decay is needed to avoid loose attacks at the end of a clip
+	defaults: (attack: 0.001, decay: 0.045, rateMul: 1),
+	postDefaults: Pbind(
+		\rate, Ptempo() / BPStream(\loopTempo) * Pkey(\rateMul),
+		\time, BPStream(\time),
+		// try to find one of the clip options that can play thru to the next event
+		// if not, use the earliest (because it will have the most audio data after it)
+		\start, Pfunc { |ev|
+			var samples = ev[\time] * ~buf.sampleRate * ev[\rate].abs,
+			valid = ev[\start].select { |a| (~bufFrames - a) >= samples },
+			out = if(valid.size > 0) {
+				valid.choose
+			} {
+				ev[\start].minItem
+			};
+			// if reversing, start at the end
+			if(ev[\rate] > 0) { out } { out + samples };
+		}
+	)
+)) => PR(\clBreak);
+
+PR(\clBreak).clone {
+	~parmMap = ~parmMap.copy;
+	~parmMap[\clip] = ~parmMap[\clip].copy.put(\convertFunc, { |key|
+		if(key.isKindOf(Char)) {
+			if(~clips[key].notNil) {
+				if(key.isUpper) {
+					[~clips[key], -1]
+				} {
+					[~clips[key], 1]
+				}
+			} {
+				[Rest(0), 1]
+			}
+		} {
+			nil
+		}
+	});
+} => PR(\clRevBreak);
+
+(
+keys: #[master, shortrvbmc],
+initLevel: -12.dbamp,
+rvbLevel: -6.dbamp,
+path: nil,
+gridOffset: 0, // 588,
+gridSamples: 30000, // 58166*0.5,
+clipDur: 0.25,
+clips: (
+	$k:#[0, 2, 8],  // 16th-note indices, etc.
+),
+getLoopTempo: { |sr| sr / ~gridSamples },
+fx: nil,  // symbol --> Func(...)
+pr: \clBreak,
+make: { |name|
+	if(~path.isNil) {
+		Error("Fact(\\breakBP) => BP(%): Must specify path, gridSamples, clips".format(name)).throw;
+	};
+	BP(name).free;
+	PR(~pr).chuck(BP(name), nil, (
+		initLevel: ~initLevel,
+		rvbLevel: ~rvbLevel,
+		master: ~master,
+		rvbmc: ~shortrvbmc,
+		path: ~path,
+		gridOffset: ~gridOffset,
+		gridSamples: ~gridSamples,
+		clipDur: ~clipDur,
+		clips: ~clips,
+		getLoopTempo: ~getLoopTempo,
+		fx: ~fx
+	));
+},
+type: \bp) => Fact(\breakBP);
+);
