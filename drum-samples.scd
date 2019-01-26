@@ -192,6 +192,7 @@ make: { |name|
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
 		autoGui: ~autoGui,
+		extraFx: ~extraFx,
 		userprep: {
 			~drumID = ~drumID.asArray.select { |key|
 				if(~available[key].isNil) {
@@ -289,6 +290,7 @@ make: { |name|
 					thing[\level] * volAdjust, thing[\pan] ? 0,
 					outbus: ~bpsubmix ?? { ~master }, completionFunc: { |chan|
 						thing[\fx].value(chan);
+						~extraFx.eval;
 						if(thing[\rvbLevel].notNil) {
 							chan.newPostSend(
 								(thing[\rvbChan] ?? { \rvbmc }).envirGet,
@@ -486,6 +488,7 @@ make: { |name|
 		rvbmc: ~rvbmc,
 		shortrvbmc: ~shortrvbmc,
 		autoGui: ~autoGui,
+		extraFx: ~extraFx,
 		userprep: {
 			var thing = ~available[~drumID], bufStart;
 			if(thing.isNil) {
@@ -496,6 +499,7 @@ make: { |name|
 			~chan = MixerChannel(~collIndex, s, 2, 2, thing[\level], thing[\pan] ? 0,
 				outbus: ~master, completionFunc: { |chan|
 					thing[\fx].value(chan);
+					~extraFx.eval;
 					if(thing[\rvbLevel].notNil) {
 						chan.newPostSend((thing[\rvbChan] ?? { \rvbmc }).envirGet, thing[\rvbLevel]);
 					};
