@@ -89,52 +89,60 @@ bassID: nil,
 mode: \default,
 octave: 5,
 leadTime: 0,
-make: { |name|
-	var leadTime = ~leadTime;
-	BP(name).free;
-	PR(\abstractLiveCode).chuck(BP(name), nil, (
-		event: (eventKey: \defaultPassRests, type: \voicerArtic),
-		bassID: ~bassID,
-		defaultParm: \degree,
-		parmMap: (
-			degree: (isPitch: true),
-			acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
-		),
-		defaults: PR(\clDefaults).copy.prep((
-			mode: ~mode ?? { \default },
-			octave: ~octave ?? { 5 }
-		), name),
-		postDefaults: Pchain(
-			Plazy { BPStream(\voicerPostArgs, envir: ~defaults) },
-			BPStream(\userPost),
-			Pfunc { |ev|
-				var mode, bassID;
-				if(ev.isRest.not) {
-					mode = ev[\mode].asMode;
-					ev[\freq] = mode.cps(ev[\degree] + (ev[\octave] * mode.scale.size));
-					if(~bassID.notNil) {
-						Library.put(~bassID, ev[\degree] % mode.scale.size);
-						bassID = ~bassID;
-						thisThread.clock.sched(0, { BP.changed(bassID, ev) });
-					};
-					if(ev[\accent].isNil) {
-						ev[\accent] = ev[\acc].notNil and: { ev[\acc] > 0 };
-					};
-					ev[\acc] = ev[\accent].asInteger;  // synchronize accent from note vs sub-parameter
+// in here, everything that refers to something in the Factory environment
+// should be a function (lazy init)
+chuckParms: (
+	event: (eventKey: \defaultPassRests, type: \voicerArtic),
+	bassID: { ~bassID },
+	defaultParm: \degree,
+	parmMap: (
+		degree: (isPitch: true),
+		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
+	),
+	defaults: { PR(\clDefaults).copy.prep((
+		mode: ~mode ?? { \default },
+		octave: ~octave ?? { 5 }
+	), ~bpName) },
+	// these environment references are in play-time functions, no need to wrap
+	postDefaults: { Pchain(
+		Plazy { BPStream(\voicerPostArgs, envir: ~defaults) },
+		BPStream(\userPost),
+		Pfunc { |ev|
+			var mode, bassID;
+			if(ev.isRest.not) {
+				mode = ev[\mode].asMode;
+				ev[\freq] = mode.cps(ev[\degree] + (ev[\octave] * mode.scale.size));
+				if(~bassID.notNil) {
+					Library.put(~bassID, ev[\degree] % mode.scale.size);
+					bassID = ~bassID;
+					thisThread.clock.sched(0, { BP.changed(bassID, ev) });
 				};
-				ev
-			}
-		),
-		userPost: Pfunc { |ev| ev },
-		bindVC: Func(\bindVC).v,
-		modeKeys: #[mode, root, scale, tuning, octave],
-		setDefault: { |... pairs|
-			pairs.pairsDo { |key, value|
-				~defaults.setDefault(key, value)
+				if(ev[\accent].isNil) {
+					ev[\accent] = ev[\acc].notNil and: { ev[\acc] > 0 };
+				};
+				ev[\acc] = ev[\accent].asInteger;  // synchronize accent from note vs sub-parameter
 			};
-		},
-		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
-	));
+			ev
+		}
+	) },
+	userPost: Pfunc { |ev| ev },
+	bindVC: `(Func(\bindVC).v),
+	modeKeys: #[mode, root, scale, tuning, octave],
+	// pseudo-method definitions should be protected
+	setDefault: `{ |... pairs|
+		pairs.pairsDo { |key, value|
+			~defaults.setDefault(key, value)
+		};
+	},
+	setVoicerParms: `{ |parms, post| ~defaults.setVoicerParms(parms, post) }
+),
+make: { |name|
+	var leadTime = ~leadTime, parms;
+	BP(name).free;
+	// resolve lazy-init functions within this environment; unwrap `refFunctions
+	~bpName = name;
+	parms = ~chuckParms.collect { |value| value.value };
+	PR(\abstractLiveCode).chuck(BP(name), nil, parms);
 	// bassID means, this process is driving other processes' harmony generation
 	// so leadTime should be > 0
 	if(~bassID.notNil) {
@@ -144,7 +152,36 @@ make: { |name|
 	BP(name)
 }, type: \bp) => Fact(\melBP);
 
-
+// melBP that plays two pitches, e.g. one for an osc and another for a filter
+// bit icky hacking done here
+{
+	var parms = Fact(\melBP).v[\chuckParms].copy;
+	parms.putAll((
+		ffreqCtl: { ~ffreqCtl },
+		rootOctave: { ~rootOctave },
+		defaultParm: \filtDegree,
+		parmMap: (
+			filtDegree: (isPitch: true),
+			degree: (isPitch: true),
+			acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
+		),
+		defaults: { PR(\clDefaults).copy.prep((
+			mode: ~mode ?? { \default },
+			octave: ~octave ?? { 5 },
+			rootOctave: ~rootOctave,
+		), ~bpName) },
+		userPost: Pfunc { |ev|
+			var mode = ev[\mode].asMode;
+			ev[~ffreqCtl] = mode.cps(ev[\filtDegree] + (ev[\octave] * mode.scale.size));
+			ev[\freq] = ev[\freq] * (2 ** (ev[\rootOctave] - ev[\octave]))
+		}
+	));
+	Fact(\melBP).v.copy
+	.put(\chuckParms, parms)
+	.put(\ffreqCtl, \ffreq)
+	.put(\rootOctave, 3)
+	=> Fact(\melFiltBP);
+}.value;
 
 // chordBP: defaultParm = top note
 
