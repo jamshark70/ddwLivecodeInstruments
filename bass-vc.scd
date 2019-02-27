@@ -71,7 +71,7 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 	sig = Mix(Pulse.ar(Lag.kr(freq * fRand * 0.5, freqlag), widths)),  // randomizing on slur is lagged too
 	feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
-	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rq);
+	sig = RLPF.ar(sig, (Lag.kr(ffreq, freqlag) * feg).clip(20, 20000), rq);
 	preamp = preamp.dbamp;
 	sig = (sig * preamp).tanh / (preamp ** 0.6);
 	Out.ar(out, (sig * (eg * amp)).dup);  // bass, don't pan
@@ -116,7 +116,7 @@ if('RLPFD'.asClass.notNil) {
 		feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
 		eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 		// mul: 3 as recommended by helpfile
-		sig = RLPFD.ar(sig, (ffreq * feg).clip(20, 20000), res, dist, 6);
+		sig = RLPFD.ar(sig, (Lag.kr(ffreq, freqlag) * feg).clip(20, 20000), res, dist, 6);
 		Out.ar(out, (sig * (eg * amp)).dup);  // bass, don't pan
 	}).add;
 
@@ -164,7 +164,7 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 	// get LF from sig and only HF from distorted
 	distorted = HPF.ar(HPF.ar(distorted, hpfreq), hpfreq);
 	sig = XFade2.ar(Mix(sig.clump(2)), distorted, distMix * 2 - 1);
-	sig = RLPF.ar(sig, (ffreq * feg).clip(20, 20000), rqeg);
+	sig = RLPF.ar(sig, (Lag.kr(ffreq, freqlag) * feg).clip(20, 20000), rqeg);
 	Out.ar(out, (sig * (eg * amp * ampCorrect)));
 }).add;
 
