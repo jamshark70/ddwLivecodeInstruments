@@ -6,6 +6,36 @@ if(Library.at(\clUseBufMode).isNil) {
 	Library.put(\clUseBufMode, false);
 };
 
+// helper function to auto-bind args from the VC object
+// must be declared first
+{ |vc|
+	var temp, chain;
+	if(vc.exists) {
+		~setVoicerParms.(
+			vc.env[\argPairs].value(vc),
+			vc.env[\postArgs].value(vc)
+		);
+		// if(~child.notNil) {
+			temp = vc.env[\extraChildParms].value(vc);
+			if(temp.notNil) {
+				temp.keysValuesDo { |key, value|
+				key.envirPut(value);
+				// ~child[key] = value;
+				};
+			};
+		// };
+		temp = vc.env[\extraParms].value(vc);
+		if(temp.notNil) {
+			temp.keysValuesDo { |key, value|
+				key.envirPut(value);
+			};
+		};
+		currentEnvironment
+	} {
+		"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
+	};
+} => Func(\bindVC);
+
 // defaults handling is quite complex
 // proc events can be an event or a pattern
 // voicer argPairs can override
@@ -700,35 +730,6 @@ make: { |name|
 	BP(name)
 },
 type: \bp) => Fact(\arpegBP);
-
-// helper function to auto-bind args from the VC object
-{ |vc|
-	var temp, chain;
-	if(vc.exists) {
-		~setVoicerParms.(
-			vc.env[\argPairs].value(vc),
-			vc.env[\postArgs].value(vc)
-		);
-		// if(~child.notNil) {
-			temp = vc.env[\extraChildParms].value(vc);
-			if(temp.notNil) {
-				temp.keysValuesDo { |key, value|
-				key.envirPut(value);
-				// ~child[key] = value;
-				};
-			};
-		// };
-		temp = vc.env[\extraParms].value(vc);
-		if(temp.notNil) {
-			temp.keysValuesDo { |key, value|
-				key.envirPut(value);
-			};
-		};
-		currentEnvironment
-	} {
-		"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
-	};
-} => Func(\bindVC);
 
 // make some modes available in all 12 keys
 (maj: \major, dor: \dorian, phr: \phrygian, lyd: \lydian, mixo: \mixolydian, min: \minor, loc: \locrian)
