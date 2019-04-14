@@ -122,7 +122,7 @@ leadTime: 0,
 // in here, everything that refers to something in the Factory environment
 // should be a function (lazy init)
 chuckParms: (
-	event: (eventKey: \defaultPassRests, type: \voicerArtic),
+	event: { (eventKey: \defaultPassRests, type: \voicerArtic) },
 	bassID: { ~bassID },
 	defaultParm: \degree,
 	parmMap: (
