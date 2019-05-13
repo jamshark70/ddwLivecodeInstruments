@@ -122,7 +122,7 @@ leadTime: 0,
 // in here, everything that refers to something in the Factory environment
 // should be a function (lazy init)
 chuckParms: (
-	event: { (eventKey: \defaultPassRests, type: \voicerArtic) },
+	event: { (eventKey: \defaultPassRests, type: \voicerArtic, scAccidentals: true) },
 	bassID: { ~bassID },
 	defaultParm: \degree,
 	parmMap: (
@@ -141,7 +141,10 @@ chuckParms: (
 			var mode, bassID;
 			if(ev.isRest.not) {
 				mode = ev[\mode].asMode;
-				ev[\freq] = mode.cps(ev[\degree] + (ev[\octave] * mode.scale.size));
+				ev[\freq] = mode.cps(
+					ev[\degree] + (ev[\octave] * mode.scale.size),
+					ev[\scAccidentals]
+				);
 				if(~bassID.notNil) {
 					Library.put(~bassID, ev[\degree] % mode.scale.size);
 					bassID = ~bassID;
@@ -202,7 +205,10 @@ make: { |name|
 		), ~bpName) },
 		userPost: Pfunc { |ev|
 			var mode = ev[\mode].asMode;
-			ev[~ffreqCtl] = mode.cps(ev[\filtDegree] + (ev[\octave] * mode.scale.size));
+			ev[~ffreqCtl] = mode.cps(
+				ev[\filtDegree] + (ev[\octave] * mode.scale.size),
+				ev[\scAccidentals]
+			);
 			ev[\freq] = ev[\freq] * (2 ** (ev[\rootOctave] - ev[\octave]))
 		}
 	));
@@ -281,7 +287,7 @@ PR(\arpeg1).clone {
 		~mode ?? { ~mode = parms.atBackup(\mode, buf.properties, parms) ?? { \default } };
 		// put: do not remap MIDI notes
 		// retain the diatonic information as is
-		result.do { |ch| ch.put(\modeOverride, ~mode) };
+		result.do { |ch| ch.put(\modeOverride, ~mode).put(\scAccidentals, true) };
 		result
 	};
 	~modeForChordObjects = { |buf, parms|
@@ -569,7 +575,7 @@ make: { |name|
 	};
 	PR(\abstractLiveCode).canWrap = true;
 	PR(\abstractLiveCode).chuck(BP(name), nil, (
-		event: (eventKey: \defaultPassRests, type: \voicerArtic),
+		event: (eventKey: \defaultPassRests, type: \voicerArtic, scAccidentals: true),
 		userprep: {
 			~parmMap[\chIndex] = (isPitch: true);
 			~parmMap[\ch] = (alias: \chord);
@@ -654,7 +660,7 @@ make: { |name|
 				~chordNotes.wrapAt(ev[\chIndex].asFloat % 7 + offset).asFloat + (7 * oct)
 			},
 			\freq, Pfunc { |ev|
-				ev[\mode].asMode.cps(ev[\degree])
+				ev[\mode].asMode.cps(ev[\degree], ev[\scAccidentals])
 			},
 			\sustain, Pfunc { |ev|
 				if(ev[\sustain] != 0) {
