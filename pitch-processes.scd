@@ -125,10 +125,12 @@ chuckParms: (
 	event: { (eventKey: \defaultPassRests, type: \voicerArtic) },
 	bassID: { ~bassID },
 	defaultParm: \degree,
-	parmMap: (
+	// also lazy init the parmMap, otherwise all melBP instances share one parmMap
+	// and one can corrupt another
+	parmMap: { (
 		degree: (isPitch: true),
 		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
-	),
+	) },
 	defaults: { PR(\clDefaults).copy.prep((
 		mode: ~mode ?? { \default },
 		octave: ~octave ?? { 5 }
