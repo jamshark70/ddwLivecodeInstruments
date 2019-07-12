@@ -4,14 +4,14 @@
 	SynthDef(\fmHarm, { |out, gate = 1, fund = 50, freq = 440, freqlag = 0.08,
 		cDetune = 1, mDetune = 1,
 		cbuf, mbuf, index = 1, amp = 0.1, pan = 0,
-		attack = 0.05, decay = 0.1, sus = 0.7, release = 0.12|
+		atk = 0.05, dcy = 0.1, sus = 0.7, rel = 0.12|
 		// -1 because you actually get sidebands around the ratio:
 		// if ratio == 6, you hear harmonics 5 and 7.
 		// To make 7 the top pitch, subtract one.
 		var ratio = Lag.kr((freq / fund).round(1) - 1, freqlag),
 		mod = Osc.ar(mbuf, fund * ratio * mDetune * [1, cDetune], 0, index),
 		car = Osc.ar(cbuf, fund * [1, cDetune] * (1 + mod), 0),
-		eg = EnvGen.kr(Env.adsr(attack, decay, sus, release), gate, doneAction: 2);
+		eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 		car = BRF.ar(Mix(car), fund, 1, amp);
 		Out.ar(out, Pan2.ar(car, pan, eg));
 	}).add;
@@ -20,7 +20,7 @@
 		// cDetune and mDetune are random limits
 		cDetune = 1, mDetune = 1,
 		cbuf, mbuf, index = 1, amp = 0.1, pan = 0,
-		attack = 0.05, decay = 0.1, sus = 0.7, release = 0.12|
+		atk = 0.05, dcy = 0.1, sus = 0.7, rel = 0.12|
 		// -1 because you actually get sidebands around the ratio:
 		// if ratio == 6, you hear harmonics 5 and 7.
 		// To make 7 the top pitch, subtract one and play ratio 6.
@@ -30,7 +30,7 @@
 		ratio = Lag.kr((freq / fund).round(1) - 1, freqlag),
 		mod = Osc.ar(mbuf, Lag.kr(fund * ratio * mDetunes * cDetunes, freqlag), 0, index),
 		car = Osc.ar(cbuf, Lag.kr(fund * cDetune, freqlag) * (1 + mod), 0),
-		eg = EnvGen.kr(Env.adsr(attack, decay, sus, release), gate, doneAction: 2);
+		eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 		car = BRF.ar(Mix(car), fund, 1, amp);
 		Out.ar(out, Pan2.ar(car, pan, eg));
 	}).add;

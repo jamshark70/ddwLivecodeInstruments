@@ -19,7 +19,7 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 			detunes = Array.fill(n, { Rand(0, 1).linexp(0, 1, rdetun, detun) }),
 			top = min(fegRatio * ((accAmt - 1) * acc + 1), 18000 / ffreq),
 			feg = EnvGen.kr(Env.perc(fAtk, fDcy, top, [1, -3])),
-			eg = EnvGen.kr(Env.perc(0.005, dcy), doneAction: 2),
+			eg = EnvGen.kr(Env.perc(fAtk, fDcy * 1.2/*0.005, dcy*/), doneAction: 2),
 			shift = freq * Rand(inharmonicity.neg, inharmonicity),
 			sig = SynthDef.wrap(oscfunc, prependArgs: [freq * detunes - shift]);
 			sig = Splay.ar(sig, min(panWidth, panCenter.abs - panWidth), 1, panCenter);
@@ -49,8 +49,8 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 			out = Voicer(15, ~defname, args: [fegRatio: 12], target: ~target);
 			out.mapGlobal(\ffreq, nil, 460, \freq);
 			// out.mapGlobal(\fegRatio, nil, 10, [1, 30, \exp]);
-			out.mapGlobal(\fAtk, nil, 0.002, [0.002, 0.08, \exp]);
-			out.mapGlobal(\fDcy, nil, 0.12, [0.01, 1, \exp]);
+			out.mapGlobal(\fAtk, nil, 0.002, [0.002, 2.0, \exp]);
+			out.mapGlobal(\fDcy, nil, 0.12, [0.08, 3.0, \exp]);
 			out.mapGlobal(\gain, nil, 0, [0, 3.9], allowGUI: false);
 			out.mapGlobal(\inharmonicity, nil, 0, [0, 0.4]);
 			out
@@ -66,12 +66,12 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 // Klanks (Ferguson)
 SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 	ratios = #[1, 2, 3, 4, 5], amps = #[1, 0.5, 0.333, 0.25, 0.2],
-	excFreq = 50, beats = 0, excTime = 0.05,
+	excFreq = 50, beats = 0, excAtk = 0.01, excTime = 0.05,
 	// not really "gate" -- voicer's velocity interface
 	pan = 0, width = 0, gate = 0.1, vsens = 0.5, vTimeSens = 0.5|
 	var gateLatch = Latch.kr(gate, gate),
 	realAmp = amp * Sensitivity.kr(1, gateLatch, vsens),
-	exc = COsc.ar(bufnum, excFreq, beats, realAmp) * EnvGen.ar(Env.perc(0.01, excTime)),
+	exc = COsc.ar(bufnum, excFreq, beats, realAmp) * EnvGen.ar(Env.perc(excAtk, excTime)),
 	panShuf = Dshuf((0 .. ratios.size-1)),
 	initTrig = Impulse.kr(0),
 	panLeft, panIncr, sig;
@@ -87,7 +87,7 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 		debugCheck.add(CheckBadValues.ar(ringz) + (8 * (ringz.abs > 2)));
 		Pan2.ar(ringz /*- Ringz.ar(exc, freq * ratio, 0.01, amps[i])*/, panLeft + (panIndex * panIncr));
 	});
-	debugRingz.poll(debugCheck);
+	// debugRingz.poll(debugCheck);
 	// sig = sig * EnvGen.ar(Env([0, 0, 1], [ControlDur.ir * 12, 0.01]));
 	DetectSilence.ar(sig.sum, 0.001, doneAction: 2);
 	Out.ar(out, sig);
@@ -134,6 +134,7 @@ make: { |name|
 	var out, data;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		chan.newPostSend(~rvbmc, ~rvbLevel);
+		~limiter = chan.playfx { |outbus| Limiter.ar(In.ar(outbus, 2), 1.8) };
 	});
 	data = ~bufData.value;
 	if(data.respondsTo(\asWavetable).not) { data = data.as(Signal) };
@@ -212,14 +213,15 @@ type: \vc) => Fact(\fmpadVC);
 (
 SynthDef(\fmbrass, { |out, freq = 220, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbuf,
 	freqlag = 0.1, detun = 1.008, panCenter = 0, panWidth = 1, acc = 0, accAmt = 5,
-	ratio = 1, index = 1, modEgAmt = 1.96, modAtk = 0.0511, modDcy = 0.0793|
+	ratio = 1, index = 1, modEgAmt = 1.96, modAtk = 0.0511, modDcy = 0.0793,
+	atk = 0.1, dcy = 0.3, sus = 0.5, rel = 0.2|
 	var n = 6;
 	var modEg = EnvGen.kr(Env([0, (acc * accAmt) + modEgAmt, 0], [modAtk, modDcy], -2), t_gate),
 	laggedFreq = Lag.kr(freq, freqlag),
 	randFreq = Array.fill(n, { laggedFreq * (detun ** Rand(-1.0, 1.0)) }),
 	mod = Osc.ar(mbuf, randFreq * ratio, mul: index * (1 + modEg)),
 	car = Osc.ar(cbuf, randFreq * (1 + mod), mul: amp),
-	eg = EnvGen.kr(Env.adsr(0.1, 0.3, 0.5, 0.2), gate, doneAction: 2);
+	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 	car = Splay.ar(car, panWidth, center: panCenter);
 	Out.ar(out, car * eg);
 }).add;
@@ -261,7 +263,7 @@ type: \vc) => Fact(\fmbrassVC);
 SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
 	freq = 440, detun = 1.008,
 	index = 1, modAmt = 1, modDcy = 1, maxIndex = 7, acc = 0, accMul = 1,
-	sus = 0.6, dcy = 0.08, rel = 2, width = 0.8, panCenter = 0,
+	atk = 0.003, sus = 0.6, dcy = 0.08, rel = 2, width = 0.8, panCenter = 0,
 	ratios = #[1, 2, 4, 8.5]|
 	var n = 8,
 	r_detun = detun.reciprocal,
@@ -276,7 +278,7 @@ SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
 	detunedFreqs = detunes * freq,
 	mod = Osc.ar(mbuf, detunedFreqs * ratioSpread, 0, index * modEg),
 	car = Osc.ar(cbuf, detunedFreqs * (1 + mod)),
-	eg = EnvGen.kr(Env([0, 1, sus, 0], [0.003, dcy, rel], -2), doneAction: 2);
+	eg = EnvGen.kr(Env([0, 1, sus, 0], [atk, dcy, rel], -2), doneAction: 2);
 	car = Splay.ar(car, width, amp, panCenter);
 	Out.ar(out, car * eg);
 }).add;
