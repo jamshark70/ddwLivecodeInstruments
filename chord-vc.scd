@@ -18,7 +18,7 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 			var rdetun = detun.reciprocal,
 			detunes = Array.fill(n, { Rand(0, 1).linexp(0, 1, rdetun, detun) }),
 			top = min(fegRatio * ((accAmt - 1) * acc + 1), 18000 / ffreq),
-			feg = EnvGen.kr(Env.perc(fAtk, fDcy, top, [1, -3])),
+			feg = EnvGen.kr(Env.perc(fAtk, fDcy, max(0, top - 1), [1, -3])) + 1,
 			eg = EnvGen.kr(Env.perc(fAtk, fDcy * 1.2/*0.005, dcy*/), doneAction: 2),
 			shift = freq * Rand(inharmonicity.neg, inharmonicity),
 			sig = SynthDef.wrap(oscfunc, prependArgs: [freq * detunes - shift]);
