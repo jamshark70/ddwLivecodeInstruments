@@ -66,12 +66,12 @@ Instr([\busfx, \chorus2], { arg bus, numInChan, numOutChan, numDelays, predelay,
 // Klanks (Ferguson)
 SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 	ratios = #[1, 2, 3, 4, 5], amps = #[1, 0.5, 0.333, 0.25, 0.2],
-	excFreq = 50, beats = 0, excAtk = 0.01, excTime = 0.05,
+	excFreq = 50, beats = 0, excAtk = 0.01, excDcy = 0.05,
 	// not really "gate" -- voicer's velocity interface
 	pan = 0, width = 0, gate = 0.1, vsens = 0.5, vTimeSens = 0.5|
 	var gateLatch = Latch.kr(gate, gate),
 	realAmp = amp * Sensitivity.kr(1, gateLatch, vsens),
-	exc = COsc.ar(bufnum, excFreq, beats, realAmp) * EnvGen.ar(Env.perc(excAtk, excTime)),
+	exc = COsc.ar(bufnum, excFreq, beats, realAmp) * EnvGen.ar(Env.perc(excAtk, excDcy, curve: 0)),
 	panShuf = Dshuf((0 .. ratios.size-1)),
 	initTrig = Impulse.kr(0),
 	panLeft, panIncr, sig;
@@ -148,7 +148,8 @@ make: { |name|
 	out.mapGlobal(\beats, nil, 1.5, [0, 50, 3]);
 	// out.mapGlobal(\excTime, nil, 0.05, [0.01, 0.2, 3]);
 	out.mapGlobal(\vTimeSens, nil, 0.8, [0, 1]);
-	out.mapGlobal(\width, nil, 0, [0, 1]);
+	// out.mapGlobal(\width, nil, 0, [0, 1]);
+	out.mapGlobal(\time, nil, 0.1, [0.05, 2, \exp]);
 	out.mapGlobal(\pRandWidth, nil, 0, [0, 0.4]);
 	defer(inEnvir { \vcToDefaultBP.eval(name, ~defaultBP) }, 0.25);
 	out
