@@ -96,8 +96,10 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 (
 keys: #[master, rvbmc],
 initLevel: -26.dbamp, // -20.dbamp,
-rvbLevel: -2.42.dbamp,
+rvbLevel: 1.4, // -2.42.dbamp,
 eventKey: \voicerNote,
+// somehow, sliding pitches in COsc (exciter) make the filters speak better
+autoBeats: true,
 bufData: {
 	// Pink noise == 1/f noise <-- Voss algorithm == Pvoss
 	// Random generation will have DC offset.
@@ -131,7 +133,7 @@ extraChildParms: (  // these go into the ~child environment
 	beats: Pexprand(1.5, 12.5, inf)
 ),
 make: { |name|
-	var out, data;
+	var out, data, beats;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		chan.newPostSend(~rvbmc, ~rvbLevel);
 		~limiter = chan.playfx { |outbus| Limiter.ar(In.ar(outbus, 2), 1.8) };
@@ -145,7 +147,10 @@ make: { |name|
 		bufnum: ~buf.bufnum,
 		excTime: 0.5,
 	], target: ~target);
-	out.mapGlobal(\beats, nil, 1.5, [0, 50, 3]);
+	beats = out.mapGlobal(\beats, nil, 1.5, [0, 50, 3]);
+	if(~autoBeats) {
+		beats.watch.automate { LFDNoise3.kr(LFDNoise3.kr(0.1).exprange(0.8, 7)).range(2, 48) };
+	};
 	// out.mapGlobal(\excTime, nil, 0.05, [0.01, 0.2, 3]);
 	out.mapGlobal(\vTimeSens, nil, 0.8, [0, 1]);
 	// out.mapGlobal(\width, nil, 0, [0, 1]);
