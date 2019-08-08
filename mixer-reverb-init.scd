@@ -22,12 +22,18 @@ var initMixers = {
 		// so we wait until the def is there
 		s.sync;
 
+		if((~hwOut.tryPerform(\isRunning) ? false).not) {
+			~hwOut = MixerChannel(\hwOut, s, 2, 2, level: 2.sqrt);  // +3 dB to offset Balance2
+		};
+
 		if((~master.tryPerform(\isRunning) ? false).not) {
-			~master = MixerChannel(\master, s, 2, 2, level: 1);
+			~master = MixerChannel(\master, s, 2, 2, level: 1, outbus: ~hwOut);
 		};
 
 		if((~rvbmc.tryPerform(\isRunning) ? false).not) {
-			~rvbmc = MixerChannel(\rvb, s, 2, 2, level: 1, outbus: ~master);
+			// used to go through ~master
+			// now through ~hwOut, which is +3 dB louder; so, compensate by -3 dB
+			~rvbmc = MixerChannel(\rvb, s, 2, 2, level: 0.5.sqrt, outbus: ~hwOut);
 		};
 
 		~rvbmc.doWhenReady {
@@ -39,7 +45,7 @@ var initMixers = {
 		};
 
 		if((~shortrvbmc.tryPerform(\isRunning) ? false).not) {
-			~shortrvbmc = MixerChannel(\shortrvb, s, 2, 2, level: 1, outbus: ~master);
+			~shortrvbmc = MixerChannel(\shortrvb, s, 2, 2, level: 0.5.sqrt, outbus: ~hwOut);
 		};
 
 		~shortrvbmc.doWhenReady {
