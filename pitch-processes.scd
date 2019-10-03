@@ -1,5 +1,11 @@
 // some reusable pitch-playing processes
 
+// one kind of nasty thing:
+// I typically just use Mode(\default) and change its contents
+// but, for just intonation, modes are stateful.
+// so if I change the contents, I have to make new copies throughout the system.
+// every pitch process, then, should implement ~mode_ and catch \modeChanged notifications
+
 // if true: chord/arpegBP factories prefer mode stored in MIDIRecBuf properties
 // if false: chord/arpegBP factories prefer \default mode
 if(Library.at(\clUseBufMode).isNil) {
@@ -143,9 +149,9 @@ chuckParms: (
 			var mode, bassID;
 			if(ev.isRest.not) {
 				mode = ev[\mode].asMode;
-				ev[\freq] = mode.cps(
-					ev[\degree] + (ev[\octave] * mode.scale.size),
-					ev[\scAccidentals]
+				ev[\freq] = mode.cpsOfKey(
+					(ev[\degree] + (ev[\octave] * mode.scale.size))
+					.unmapMode(mode, ev[\scAccidentals])
 				);
 				if(~bassID.notNil) {
 					Library.put(~bassID, ev[\degree] % mode.scale.size);
@@ -169,7 +175,42 @@ chuckParms: (
 			~defaults.setDefault(key, value)
 		};
 	},
-	setVoicerParms: `{ |parms, post| ~defaults.setVoicerParms(parms, post) }
+	setVoicerParms: `{ |parms, post| ~defaults.setVoicerParms(parms, post) },
+	ji: `{ ~event[\jiHelper] },
+	ji_: `{ |key|
+		if(key.isNil or: { BP.exists(key) and: { BP(key)[\isJIHelper] == true } }) {
+			~event[\jiHelper] = key;
+		} {
+			"BP(%): BP(%) is not a just-intonation helper"
+			.format(~collIndex.asCompileString, key.asCompileString)
+			.warn;
+		};
+		currentEnvironment
+	},
+	mode_: `{ |mode|
+		var modeObj = mode.asMode;
+		if(modeObj.value.isKindOf(KeyOf)) {
+			~mode = modeObj.value.copy.bpKey_(~collIndex);
+		} {
+			~mode = mode;
+		};
+		~defaults.setDefault(\mode, ~mode);
+		~addModeWatcher.(modeObj);
+	},
+	addModeWatcher: `{ |modeObj|
+		~modeWatcher.remove;
+		~modeWatcher = SimpleController(modeObj)
+		.put(\modeChanged, inEnvir { |obj|
+			~mode_.value(obj);  // important for copying KeyOf
+		})
+		.put(\free, inEnvir {
+			"BP(%): % has been freed, process may break"
+			.format(~collIndex.asCompileString, ~mode.asCompileString)
+			.warn;
+			~modeWatcher.remove;
+		});
+		currentEnvironment
+	}
 ),
 make: { |name|
 	var leadTime = ~leadTime, parms;
@@ -184,6 +225,9 @@ make: { |name|
 		leadTime = max(leadTime, 0.05);
 	};
 	BP(name).leadTime = leadTime;
+	BP(name).mode = ~mode;
+	// optionally: /make(melBP:name(ji:\jiHelperKey)) (just intonation)
+	if(~ji.notNil) { BP(name).ji = ~ji };
 	BP(name)
 }, type: \bp) => Fact(\melBP);
 
@@ -223,7 +267,36 @@ make: { |name|
 
 // chordBP: defaultParm = top note
 
+// first, new clone of chord object with just-intonation support
+// this needs to be done in the chord object
+// because here is the only place that is certain to have all the chord notes
+PR(\chordModeSeg).clone {
+	~superAsPattern = ~asPattern;
+	~asPattern = { |inEvent, fitFunc|
+		var out = ~superAsPattern.(inEvent, fitFunc),
+		mode = ~mode.asMode,
+		keys = ~lastFitNotes.asFloat.unmapMode(mode),
+		refKey,
+		ji;
+
+		if(BP.exists(inEvent[\jiHelper]) and: { BP(inEvent[\jiHelper])[\isJIHelper] == true }) {
+			ji = BP(inEvent[\jiHelper]);
+			// sets lastScale and lastRefKey
+			~jiScale = ji.bestScaleToRef(keys[0], keys);
+			// refFreq = mode root (midicps) * chosen scale ratio
+			// but scale is arranged with refKey at [0]
+			// so scale root is -refKey: invert the interval and raise an octave
+			// obtain from ji because we might be following another process's tuning
+			refKey = ji.lastRefKey - mode.root;
+			ji.lastRefFreq = mode.root.midicps / ~jiScale.wrapAt(refKey.neg) * (2 ** (refKey div: 12 + 1));
+		};
+		out
+	};
+} => PR(\chordJISeg);
+
 PR(\arpeg1).clone {
+	~chordProto = \chordJISeg;
+
 	~nextNotePattern = #{ |inEvent|
 			// if there is an event, we need to move to the next chord
 		(inEvent.size > 0).if({
@@ -292,13 +365,15 @@ PR(\arpeg1).clone {
 		result.do { |ch| ch.put(\modeOverride, ~mode).put(\scAccidentals, true) };
 		result
 	};
+	// total override of mode
+	~mode_ = { |mode|
+		~mode = mode;
+		~event[\mode] = mode;
+		~chords.do { |ch| ch.mode = mode };
+		currentEnvironment
+	};
 	~modeForChordObjects = { |buf, parms|
-		if(buf.properties.notNil) {
-			buf.properties.atBackup(\mode, parms, currentEnvironment)
-		} {
-			parms.atBackup(\mode, currentEnvironment)
-		}
-		?? { \default }
+		BP(~collIndex).mode
 	};
 	~modeKeys = #[mode, root, scale, tuning, octave];
 	~setDefault = { |... pairs|
@@ -311,7 +386,8 @@ PR(\arpeg1).clone {
 				if(value.isPattern) {
 					"Chord process: Patterns are not supported for \mode".warn;
 				} {
-					~mode = value;
+					value = value.asMode.value;
+					~mode = value;  // note, don't copy KeyOf objects here
 					~chords.do { |ch| ch.put(\mode, value).put(\modeOverride, value) };
 				};
 			};
@@ -397,6 +473,10 @@ make: { |name|
 			),
 			name
 		);
+		~mode_ = { |mode|
+			~postDefaults.setDefault(\mode, mode);
+			currentEnvironment
+		};
 		~parmMap = p.parmMap;
 		~defaultParm = p.defaultParm;
 		~valueForParm = p[\valueForParm];
@@ -480,6 +560,30 @@ make: { |name|
 		})
 	};
 	p.bassID = ~bassID;
+	p.mode_ = { |mode|
+		var modeObj = mode.asMode;
+		if(modeObj.value.isKindOf(KeyOf)) {
+			~mode = modeObj.value.copy.bpKey_(~collIndex);
+		} {
+			~mode = mode;
+		};
+		~addModeWatcher.(modeObj);
+		~event[\mode] = ~mode;
+		~child !? { ~child.mode = ~mode };
+		if(~topNote.isKindOf(Proto)) { ~topNote.mode = ~mode };
+		currentEnvironment  // .put(\mode, ~mode);
+	};
+	p.addModeWatcher = Fact(\melBP).chuckParms[\addModeWatcher].value;
+	p.freeCleanup = {
+		~modeWatcher.remove;
+		~topNote.tryPerform(\freeCleanup);
+		~userfree.();
+	};
+	p.ji = Fact(\melBP).chuckParms[\ji].value;
+	p.ji_ = {
+		if(~child.notNil) { ~child.event[\jiHelper] = ~event[\jiHelper] };
+		currentEnvironment
+	} <> Fact(\melBP).chuckParms[\ji_].value;
 	p.stopCleanup = {
 		if(~event[\voicer].notNil) {
 			~event[\voicer].releaseSustainingBefore(thisThread.seconds,
@@ -554,6 +658,7 @@ make: { |name|
 		currentEnvironment
 	};
 	TempoClock.default => p;
+	Mode(mode) => p;
 	p
 }, type: \bp, defaultName: \ch) => Fact(\chordBP);
 
@@ -572,7 +677,7 @@ make: { |name|
 	// minor hack here. I don't want to override everything in arpeg1
 	// but I do need the mode handling from arpeg1LC. So, chuck and replace.
 	PR(\arpeg1) => BP(name);
-	#[prepareSequence, superPrepareSequence, modeForChordObjects].do { |key|
+	#[chordProto, prepareSequence, superPrepareSequence, modeForChordObjects].do { |key|
 		BP(name)[key] = PR(\arpeg1LC)[key];
 	};
 	PR(\abstractLiveCode).canWrap = true;
@@ -585,6 +690,7 @@ make: { |name|
 				~parmMap[\ch][ch] = i;
 			};
 		},
+		userfree: { ~modeWatcher.remove },
 		defaultParm: \chIndex,
 		parmMap: (
 			chIndex: (isPitch: true),
@@ -662,7 +768,8 @@ make: { |name|
 				~chordNotes.wrapAt(ev[\chIndex].asFloat % 7 + offset).asFloat + (7 * oct)
 			},
 			\freq, Pfunc { |ev|
-				ev[\mode].asMode.cps(ev[\degree], ev[\scAccidentals])
+				var mode = ev[\mode].asMode;
+				mode.cpsOfKey(ev[\degree].unmapMode(mode, ev[\scAccidentals]))
 			},
 			\sustain, Pfunc { |ev|
 				if(ev[\sustain] != 0) {
@@ -685,6 +792,20 @@ make: { |name|
 			};
 			ev
 		},
+		mode_: { |mode|
+			var modeObj = mode.asMode;
+			if(modeObj.value.isKindOf(KeyOf)) {
+				~mode = modeObj.value.copy.bpKey_(~collIndex);
+			} {
+				~mode = mode;
+			};
+			~addModeWatcher.(modeObj);
+			~event[\mode] = ~mode;
+			~child !? { ~child.mode = ~mode };
+			if(~topNote.isKindOf(Proto)) { ~topNote.mode = ~mode };
+			currentEnvironment  // .put(\mode, ~mode);
+		},
+		addModeWatcher: Fact(\melBP).chuckParms[\addModeWatcher].value,
 		modeKeys: #[mode, root, scale, tuning, octave],
 		setDefault: { |... pairs|
 			pairs.pairsDo { |key, value|
@@ -730,8 +851,7 @@ make: { |name|
 					\default
 				};
 			};
-			BP(name).event[\mode] = mode;
-			BP(name).child[\mode] = mode;
+			BP(name).mode = mode;
 			chords => BP(name);
 		};
 	};
@@ -747,10 +867,12 @@ type: \bp) => Fact(\arpegBP);
 	.do { |rootStr, root|
 		if(rootStr.isString) { rootStr = [rootStr] };
 		rootStr.do { |rootName|
-			ModalSpec(scale.semitones, 12, root) => Mode((rootName ++ postfix).asSymbol);
+			KeyOf(scale.semitones, 12, root) => Mode((rootName ++ postfix).asSymbol);
 		};
 	};
 };
+
+Mode(\cmaj) => Mode(\default);
 
 if(MBM.exists(0).not) {
 	MIDIBufManager(TempoClock.default, nil) => MBM.prNew(0);
