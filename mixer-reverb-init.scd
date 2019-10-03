@@ -28,6 +28,7 @@ var initMixers = {
 
 		if((~master.tryPerform(\isRunning) ? false).not) {
 			~master = MixerChannel(\master, s, 2, 2, level: 1, outbus: ~hwOut);
+			~master.setControl(\clip, 6);
 		};
 
 		if((~rvbmc.tryPerform(\isRunning) ? false).not) {
@@ -55,6 +56,18 @@ var initMixers = {
 					MultiEQ.new(2, \eq, 8544.433, -7.97.dbamp, 0.115).play(~shortrvbmc);
 				});
 			}
+		};
+
+		if((~longrvbmc.tryPerform(\isRunning) ? false).not) {
+			~longrvbmc = MixerChannel(\rvb, s, 2, 2, level: 0.5.sqrt, outbus: ~hwOut);
+		};
+
+		~longrvbmc.doWhenReady {
+			if(~longrvb.isPlaying.not) {
+				s.makeBundle(s.latency, {
+					~longrvb = ~longrvbmc.playfx(\cll_freeverb2, [mix: 1.0, room: 0.96, damp: 0.25, amp: 1.0]);
+				});
+			};
 		};
 
 	}.fork(SystemClock);
