@@ -337,7 +337,6 @@ PR(\arpeg1).clone {
 			},
 			#[\dur, \length, \gate], MicRh(inEvent[\microRhythm])
 				.asPattern(~notePattern, inEvent),
-			// \mode, (Pfunc({ ~currentChord.modeForEvent(inEvent) })),
 			\mode, BPStream(\mode),
 			// user code needs to depend on degree/octave, for other pitch processes
 			// but this process represents pitch as a SequenceNote, so, extract
@@ -630,27 +629,6 @@ make: { |name|
 			ev
 		};
 	};
-	/*
-	p.bindVC = { |vc|
-		var temp;
-		if(vc.exists) {
-			~setVoicerParms.(
-				vc.env[\argPairs].value(vc),
-				vc.env[\postArgs].value(vc)
-			);
-			temp = vc.env[\extraChildParms].value(vc).debug("childparms");
-			if(temp.notNil) {
-				temp.keysValuesDo { |key, value|
-					~child[key] = value;
-				};
-			};
-			currentEnvironment
-		} {
-			"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
-		};
-	};
-	*/
-
 	// rests are now inside topNote. Need to be aware of the clock.
 	p['clock_'] = { |clock|
 		~clock = clock;
@@ -819,28 +797,6 @@ make: { |name|
 	BP(name).child.fitFunc = ~fit;
 	BP(name).bassID = ~bassID;
 	BP(name).bindVC = Func(\bindVC).v;
-	/*
-	BP(name).bindVC = { |vc|
-		var temp;
-		if(vc.exists) {
-			~argPairs = vc.env[\argPairs].value(vc);
-			case
-			{ ~argPairs.size > 0 } {
-				~argPairs = Pbind(\argKeys, ~argPairs[0, 2..], *(~argPairs));
-			};
-
-			temp = vc.env[\extraChildParms].value(vc);
-			if(temp.notNil) {
-				temp.keysValuesDo { |key, value|
-					~child[key] = value;
-				};
-			};
-			currentEnvironment
-		} {
-			"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
-		};
-	};
-	*/
 	if(MBM.exists(0)) {
 		chords = MBM(0)[~chords];
 		if(chords.notNil) {
