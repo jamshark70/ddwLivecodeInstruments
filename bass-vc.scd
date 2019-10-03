@@ -3,6 +3,7 @@
 SynthDef(\fmBass, { |out, freq = 440, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbuf,
 	ratio = 0.5, index = 3, detun = 1.003, bufmod = 0, bufmodlag = 0.1, freqlag = 0.08,
 	indexDecay = 0.1, indexEgAmt = 0.62,
+	atk = 0.01, dcy = 0.2, sus = 0.6, rel = 0.1,
 	preamp = 18, postamp = -11|
 	var indexEg = EnvGen.kr(Env.perc(0.01, indexDecay), t_gate) * indexEgAmt,
 	fLag = Lag.kr(freq, freqlag),
@@ -12,7 +13,7 @@ SynthDef(\fmBass, { |out, freq = 440, gate = 1, t_gate = 1, amp = 0.1, cbuf, mbu
 		mul: index * (1 + indexEg)
 	),
 	cars = Osc.ar(cbuf, fLag * (1 + mods)),
-	eg = EnvGen.kr(Env.adsr(0.01, 0.2, 0.6, 0.1), gate, doneAction: 2);
+	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 	cars = (cars * preamp.dbamp).tanh * postamp.dbamp;
 	Out.ar(out, cars * (amp * eg));
 }).add;
@@ -212,7 +213,7 @@ make: { |name|
 	out.mapGlobal(\preamp, nil, 0.15, [0.1, 0.999, 2]);
 	out
 },
-free: { ~target.free },
+free: { [~target, ~shapeBuf].free },
 type: \vc) => Fact(\distbsVC);
 
 

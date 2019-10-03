@@ -266,7 +266,7 @@ type: \vc) => Fact(\fmbrassVC);
 
 
 (
-SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
+SynthDef(\fmclav, { |out, gate = 1, amp = 0.1, cbuf, mbuf,
 	freq = 440, detun = 1.008,
 	index = 1, modAmt = 1, modDcy = 1, maxIndex = 7, acc = 0, accMul = 1,
 	atk = 0.003, sus = 0.6, dcy = 0.08, rel = 2, width = 0.8, panCenter = 0,
@@ -284,7 +284,8 @@ SynthDef(\fmclav, { |out, /*gate = 1,*/ amp = 0.1, cbuf, mbuf,
 	detunedFreqs = detunes * freq,
 	mod = Osc.ar(mbuf, detunedFreqs * ratioSpread, 0, index * modEg),
 	car = Osc.ar(cbuf, detunedFreqs * (1 + mod)),
-	eg = EnvGen.kr(Env([0, 1, sus, 0], [atk, dcy, rel], -2), doneAction: 2);
+	eg = EnvGen.kr(Env([0, 1, sus, 0], [atk, dcy, rel], -2), doneAction: 2),
+	earlyRelease = EnvGen.kr(Env.asr(0, 1, 0.02), gate + 0.001, doneAction: 2);
 	car = Splay.ar(car, width, amp, panCenter);
 	Out.ar(out, car * eg);
 }).add;
