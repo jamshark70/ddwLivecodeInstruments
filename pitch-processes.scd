@@ -637,6 +637,7 @@ make: { |name|
 	};
 	TempoClock.default => p;
 	Mode(mode) => p;
+	if(~ji.notNil) { p.ji = ~ji };
 	p
 }, type: \bp, defaultName: \ch) => Fact(\chordBP);
 
@@ -797,6 +798,8 @@ make: { |name|
 	BP(name).child.fitFunc = ~fit;
 	BP(name).bassID = ~bassID;
 	BP(name).bindVC = Func(\bindVC).v;
+	BP(name).ji = Fact(\melBP).chuckParms[\ji].value;
+	BP(name).ji_ = Fact(\melBP).chuckParms[\ji_].value;
 	if(MBM.exists(0)) {
 		chords = MBM(0)[~chords];
 		if(chords.notNil) {
@@ -811,6 +814,7 @@ make: { |name|
 			chords => BP(name);
 		};
 	};
+	if(~ji.notNil) { BP(name).ji = ~ji };
 	BP(name)
 },
 type: \bp) => Fact(\arpegBP);
