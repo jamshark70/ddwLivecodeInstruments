@@ -189,7 +189,7 @@ chuckParms: (
 	},
 	mode_: `{ |mode|
 		var modeObj = mode.asMode;
-		if(modeObj.value.isKindOf(KeyOf)) {
+		if(modeObj.value.isKindOf(ModalSpecJI)) {
 			~mode = modeObj.value.copy.bpKey_(~collIndex);
 		} {
 			~mode = mode;
@@ -201,7 +201,7 @@ chuckParms: (
 		~modeWatcher.remove;
 		~modeWatcher = SimpleController(modeObj)
 		.put(\modeChanged, inEnvir { |obj|
-			~mode_.value(obj);  // important for copying KeyOf
+			~mode_.value(obj);  // important for copying ModalSpecJI
 		})
 		.put(\free, inEnvir {
 			"BP(%): % has been freed, process may break"
@@ -387,7 +387,7 @@ PR(\arpeg1).clone {
 					"Chord process: Patterns are not supported for \mode".warn;
 				} {
 					value = value.asMode.value;
-					~mode = value;  // note, don't copy KeyOf objects here
+					~mode = value;  // note, don't copy ModalSpecJI objects here
 					~chords.do { |ch| ch.put(\mode, value).put(\modeOverride, value) };
 				};
 			};
@@ -562,7 +562,7 @@ make: { |name|
 	p.bassID = ~bassID;
 	p.mode_ = { |mode|
 		var modeObj = mode.asMode;
-		if(modeObj.value.isKindOf(KeyOf)) {
+		if(modeObj.value.isKindOf(ModalSpecJI)) {
 			~mode = modeObj.value.copy.bpKey_(~collIndex);
 		} {
 			~mode = mode;
@@ -794,7 +794,7 @@ make: { |name|
 		},
 		mode_: { |mode|
 			var modeObj = mode.asMode;
-			if(modeObj.value.isKindOf(KeyOf)) {
+			if(modeObj.value.isKindOf(ModalSpecJI)) {
 				~mode = modeObj.value.copy.bpKey_(~collIndex);
 			} {
 				~mode = mode;
@@ -867,7 +867,7 @@ type: \bp) => Fact(\arpegBP);
 	.do { |rootStr, root|
 		if(rootStr.isString) { rootStr = [rootStr] };
 		rootStr.do { |rootName|
-			KeyOf(scale.semitones, 12, root) => Mode((rootName ++ postfix).asSymbol);
+			ModalSpecJI(scale.semitones, 12, root) => Mode((rootName ++ postfix).asSymbol);
 		};
 	};
 };
