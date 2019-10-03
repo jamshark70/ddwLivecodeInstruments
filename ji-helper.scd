@@ -7,6 +7,29 @@ Proto {
 	// for now, do not change this:
 	// ~fillOne currently expects a 12-note chromatic scale
 	~stepsPerOctave = 12;
+	// preferred forms for individual intervals
+	~preferred = [
+		1, 16/15,  // C, C#  16/15 = P4 - M3
+		9/8, 6/5,  // D, D#  6/5 = pure m3
+		5/4,       // E
+		4/3, 45/32,// F, F# 45/32 = M2 + M3
+		3/2, 8/5,  // G, G#  8/5 = down M3 + P8
+		5/3, 9/5,  // A, A#  9/5 = down M2 + P8
+		15/8       // B     15/8 = P5 + M3
+	];
+	// how important is each interval? P4/P5 very important, 2nd/7th medium important, 3rd not so much
+	// this is important for 0 3 5 trichord where 0 and 5 should be up a comma
+	// and the minor third should be slightly narrow
+	// (it really sounds better that way, closer to Pythagorean)
+	~weights = [
+		0,  // unison
+		1, 3,  // m2 low, M2 mid
+		2, 2,  // thirds medium importance
+		4, 1,  // P4 high, tritone low
+		4,     // P5 high
+		2, 2,  // m6 M6 medium
+		3, 1   // m7 mid, M7 low
+	];
 	~prep = {
 		~scales = Array.fill(4, ~fillOne);
 		currentEnvironment
@@ -35,12 +58,17 @@ Proto {
 			};
 		};
 		// keyPairs.debug("key pairs");
-		~scales.minItem { |row, i|
+		~scales.maxItem { |row, i|
+			// row.asRational.debug("testing");
 			keyPairs.sum { |pair|
-				var ratios = row.wrapAt(pair);
-				if(ratios[1] > ratios[0]) { ratios.swap(0, 1) };
-				// [pair, ratios[0], ratios[1], (ratios[0] / ratios[1]).asRational].debug("keys, ratio[0], ratio[1], quotient");
-				(ratios[0] / ratios[1]).asFraction[1]  // denominator
+				var ratio = row.wrapAt(pair), adding;
+				ratio = ~flattenOctave.(ratio[0] / ratio[1]);
+				adding = if(ratio.equalWithPrecision(~preferred.wrapAt(pair[0] - pair[1]))) {
+					~weights.wrapAt(pair[0] - pair[1])
+				} { 0 };
+				// [pair, row.wrapAt(pair).asRational, ratio.asRational, ~preferred.wrapAt(pair[0] - pair[1]).asRational, adding]
+				// .debug("keys, ratios, quotient, preferred, adding");
+				// adding
 			};
 		};
 	};
