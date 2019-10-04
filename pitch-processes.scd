@@ -288,7 +288,12 @@ PR(\chordModeSeg).clone {
 			// so scale root is -refKey: invert the interval and raise an octave
 			// obtain from ji because we might be following another process's tuning
 			refKey = ji.lastRefKey - mode.root;
-			ji.lastRefFreq = mode.root.midicps / ~jiScale.wrapAt(refKey.neg) * (2 ** (refKey div: 12 + 1));
+			ji.lastRefFreq = mode.root.midicps / ~jiScale.wrapAt(refKey.neg)
+			// -0.01 is a slight hack.
+			// If refKey *is* the mode root, then the division does not go down
+			// but instead stays on the same pitch. So it's wrong to add the octave
+			// in that case. To avoid, subtract a small amount that will not affect refKey = 1
+			* (2 ** ((refKey - 0.01) div: 12 + 1));
 		};
 		out
 	};
@@ -865,3 +870,8 @@ MIDIRecBuf(\two, [
 	[0.1, 1].lace(14),
 	0.1, 0.5
 ].asNotes, properties: (type: \ch, mode: \cmaj)) => MBM(0);
+
+if(BP.exists(\lead).not) {
+	PR(\jiLeader) => BP(\lead);
+	PR(\jiFollow) => BP(\follow);
+};
