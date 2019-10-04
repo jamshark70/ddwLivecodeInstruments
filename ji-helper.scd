@@ -4,6 +4,7 @@
 
 Proto {
 	~isJIHelper = true;
+	~debug = false;
 	// for now, do not change this:
 	// ~fillOne currently expects a 12-note chromatic scale
 	~stepsPerOctave = 12;
@@ -14,7 +15,7 @@ Proto {
 		5/4,       // E
 		4/3, 45/32,// F, F# 45/32 = M2 + M3
 		3/2, 8/5,  // G, G#  8/5 = down M3 + P8
-		5/3, 9/5,  // A, A#  9/5 = down M2 + P8
+		5/3, 9/5,  // A, A#  9/5 = P5 + m3, so m7 chord is in tune
 		15/8       // B     15/8 = P5 + M3
 	];
 	// how important is each interval? P4/P5 very important, 2nd/7th medium important, 3rd not so much
@@ -38,6 +39,10 @@ Proto {
 	~flattenOctave = { |ratio|
 		ratio * (2 ** ratio.log2.trunc.neg)
 	};
+	// un-flatten octave, based on key
+	~getRatio = { |key, scaleIndex|
+		~scales[scaleIndex].wrapAt(key) * (2 ** (key div: 12))
+	};
 	~syntonic = 80/81;
 	~fillOne = { |offset = 0|
 		var out = Array.newClear(12);
@@ -57,19 +62,29 @@ Proto {
 				keyPairs.add([keys[i], keys[j]]);
 			};
 		};
-		// keyPairs.debug("key pairs");
+		if(~debug == true) {
+			keys.debug("bestScale keys");
+			keyPairs.debug("key pairs");
+		};
 		~scales.maxItem { |row, i|
-			// row.asRational.debug("testing");
-			keyPairs.sum { |pair|
-				var ratio = row.wrapAt(pair), adding;
+			var sum;
+			if(~debug == true) { row.asRational.debug("testing") };
+			sum = keyPairs.sum { |pair|
+				var ratio, adding;
+				if(pair[0] < pair[1]) { pair.swap(0, 1) };  // want [0] to be bigger
+				ratio = ~getRatio.(pair, i);
 				ratio = ~flattenOctave.(ratio[0] / ratio[1]);
 				adding = if(ratio.equalWithPrecision(~preferred.wrapAt(pair[0] - pair[1]))) {
 					~weights.wrapAt(pair[0] - pair[1])
 				} { 0 };
-				// [pair, row.wrapAt(pair).asRational, ratio.asRational, ~preferred.wrapAt(pair[0] - pair[1]).asRational, adding]
-				// .debug("keys, ratios, quotient, preferred, adding");
-				// adding
+				if(~debug == true) {
+					[pair, row.wrapAt(pair).asRational, ratio.asRational, ~preferred.wrapAt(pair[0] - pair[1]).asRational, adding]
+					.debug("keys, ratios, quotient, preferred, adding");
+				};
+				adding
 			};
+			if(~debug == true) { sum.debug("sum for scale") };
+			sum
 		};
 	};
 	~bestScaleToRef = { |refKey, keys|
@@ -105,7 +120,7 @@ PR(\jiHelper).clone {
 } => PR(\jiLeader);
 
 PR(\jiHelper).clone {
-	~source = \jiLeader;
+	~source = \lead;
 	~prep = {
 		if(~sourceIsValid.(~source).not) {
 			"BP(%): BP(%) is not a just-intonation helper, be sure to set a valid source"
