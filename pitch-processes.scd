@@ -333,10 +333,12 @@ PR(\arpeg1).clone {
 				if(~currentChordSize.notNil and: { count >= ~currentChordSize }) {
 					// if we do this now, it'll release the nodes we want to slur
 					// must wait until the nodes are updated -- then this will check for leftovers
-					thisThread.clock.sched(0.05, inEnvir {
-						ev[\voicer].tryPerform(\releaseSustainingBefore, ~currentChordSec,
-							ev[\voicer].target.server.latency);
-					});
+					if(ev[\voicer].notNil) {
+						thisThread.clock.sched(0.05, inEnvir {
+							ev[\voicer].tryPerform(\releaseSustainingBefore, ~currentChordSec,
+								ev[\voicer].target.server.latency);
+						});
+					};
 				};
 				count
 			},
@@ -628,8 +630,10 @@ make: { |name|
 			}) {
 				// note trigger times == ~child.currentChordSec
 				// but test for release is "<" so we need a slight difference
-				ev[\voicer].tryPerform(\releaseSustainingBefore, ~child.currentChordSec + 0.01,
-					ev[\voicer].target.server.latency);
+				if(ev[\voicer].notNil) {
+					ev[\voicer].tryPerform(\releaseSustainingBefore, ~child.currentChordSec + 0.01,
+						ev[\voicer].target.server.latency);
+				};
 			};
 			ev
 		};
@@ -732,7 +736,8 @@ make: { |name|
 						// these, fix later
 						bassID: ~bassID, updateOnBass: true,
 						convertTopFunc: \convertMode,
-						mode: ev[\mode]
+						mode: ev[\mode],
+						jiHelper: ev[\jiHelper]
 					);
 					if(nextChord) {
 						~child.nextNoteStream(parentEvent);
