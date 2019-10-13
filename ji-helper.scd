@@ -103,18 +103,38 @@ Proto {
 } => PR(\jiHelper);
 
 PR(\jiHelper).clone {
+	~defaultMode = \default;
 	~superPrep = ~prep;
 	~prep = {
 		~superPrep.();
 		~lastScale = ~scales[1];
+		// we must initialize to sensible values
+		~lastRefKey = Mode(~defaultMode).root;
+		~lastRefFreq = ~lastRefKey.midicps;
+		// now the tricky part
+		// if you change mode before the jiLeader has been called,
+		// we need to update lastRefKey and lastRefFreq
+		// ... but after it's called, we should use the new data
+		~modeWatcher = SimpleController(Mode(~defaultMode))
+		.put(\modeChanged, inEnvir { |modeObj|
+			~lastRefKey = modeObj.root;
+			~lastRefFreq = ~lastRefKey.midicps;
+		})
+		.put(\free, inEnvir { ~modeWatcher.remove });
+		currentEnvironment
 	};
+	~freeCleanup = { ~modeWatcher.remove };
 	~superBestScale = ~bestScale;
 	~bestScale = { |keys|
 		~lastScale = ~superBestScale.(keys);
 	};
 	~superBestScaleToRef = ~bestScaleToRef;
 	~bestScaleToRef = { |refKey, keys|
-		~lastRefKey = refKey;
+		// now I have my own setting for refKey
+		// so I don't have to update on Mode anymore
+		~modeWatcher.remove;
+		~modeWatcher = nil;
+		~lastRefKey = refKey;  // ji "client" will decide lastRefFreq
 		~superBestScaleToRef.(refKey, keys);
 	};
 } => PR(\jiLeader);
