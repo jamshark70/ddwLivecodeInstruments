@@ -204,7 +204,7 @@ chuckParms: (
 			~mode_.value(obj);  // important for copying ModalSpecJI
 		})
 		.put(\free, inEnvir {
-			"BP(%): % has been freed, process may break"
+			"BP(%): Mode(%) has been freed, process may break"
 			.format(~collIndex.asCompileString, ~mode.asCompileString)
 			.warn;
 			~modeWatcher.remove;
