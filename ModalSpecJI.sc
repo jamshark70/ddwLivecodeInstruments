@@ -17,6 +17,15 @@ ModalSpecJI : ModalSpec {
 		cpsFunc = func;
 	}
 
+	cps { |degree, scAccidentals = false|
+		var unmap = degree.unmapMode(this, scAccidentals);
+		^if(cpsFunc.notNil) {
+			cpsFunc.value(unmap)
+		} {
+			(unmap + tuning).midicps
+		}
+	}
+
 	cpsOfKey { |midi|
 		var ji, refKey, refFreq, octaves, relativeKeys, result;
 		if(cpsFunc.notNil) {
