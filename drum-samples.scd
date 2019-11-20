@@ -1,3 +1,47 @@
+SynthDef(\drumDistortion, { |out, mix = -1, preamp = -10|
+	var dry = In.ar(out, 2),
+	wet = (dry * preamp.dbamp).tanh,
+	dryamp = Amplitude.ar(dry),
+	wetamp = Amplitude.ar(wet),
+	ampCorrect = dryamp / max(wetamp, 0.01);  // assuming these will track together?
+	ReplaceOut.ar(out, LinXFade2.ar(dry, wet * ampCorrect, mix));
+}).add;
+
+// helper for multiple kicks
+{ |name|
+	// throws errors if not found
+	var mixer;
+	if(BP.exists(name)) {
+		if(BP(name)[\locut].isNil) {
+			mixer = BP(name).asMixer;
+			BP(name).locut = MultiEQ(mixer.inChannels, \bhipass, 120, 1, 1.414).play(mixer);
+		} {
+			"BP(%) already has a lo-cut filter".format(name.asCompileString).warn;
+		}
+	} {
+		"BP(%) doesn't exist".format(name.asCompileString).warn;
+	};
+} => Func(\locut);
+
+{ |name|
+	var bp;
+	if(BP.exists(name)) {
+		bp = BP(name);
+		if(bp[\preampCtl].notNil) {
+			bp[\preampCtl].value = 21.8;
+		} {
+			"BP(%) has no preamp control".format(name.asCompileString).warn;
+		};
+	} {
+		"BP(%) doesn't exist".format(name.asCompileString).warn;
+	};
+} => Func(\distortDrum);
+
+{ |name|
+	\locut.eval(name);
+	\distortDrum.eval(name);
+} => Func(\dhiDrum);
+
 { |... id|
 	var spec;
 	if(id.size > 0) {
@@ -220,6 +264,16 @@ make: { |name|
 			} {
 				~chan = ~drums[0].chan
 			};
+			~preampCtl = GenericGlobalControl(\preamp, nil, -10, [-20, 40]);
+			~dmixCtl = GenericGlobalControl(\distmix, nil, 1, \bipolar);
+			~dist = ~chan.playfx(\drumDistortion, [
+				preamp: ~preampCtl.asMap,
+				mix: ~dmixCtl.asMap
+			]);
+			~chan.doWhenReady {
+				~dist.moveToTail(~chan.effectgroup);
+			};
+			~globalControls = [~preampCtl, ~dmixCtl];
 			// version safety: new instruments + old cll won't know how to do this
 			if(~autoGui == true and: { PR(\clMake).v[\autoAssignMixer].notNil }) {
 				PR(\clMake).autoAssignMixer(~chan);
@@ -227,7 +281,7 @@ make: { |name|
 		},
 		userfree: {
 			~drums.do { |thing| thing[\buf].free; thing[\chan].free };
-			~bpsubmix.free;
+			[~bpsubmix, ~preampCtl, ~dmixCtl].free;
 		},
 		defaultParm: \ampBuf,
 		parmMap: (),
