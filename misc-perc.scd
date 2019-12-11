@@ -59,8 +59,29 @@ make: { |name|
 			[~chan, ~bufs].free;
 		},
 		defaultParm: \buf,
-		parmMap: (),
-		defaults: (adjust: 0),
+		parmMap: (
+			xpose: (
+				isPitch: true,
+				convertFunc: { |note, ev|
+					var mode;
+					if(note.isRest.not and: { note.isKindOf(SequenceNote) and: { ev.isRest.not } }) {
+						mode = ev[\mode].asMode;
+						// note: not supporting JI here
+						// to do that, BP's mode should be its own copy of the mode object
+						// that's too much to import, so ET it is
+						mode.cps(note.asFloat) / mode.cps(0)
+					} {
+						1
+					}
+				}
+			)
+		),
+		// You'd think xpose should be a SequenceNote (for convertFunc)
+		// but there are two cases:
+		// 1. There's an xpose pattern: default is not used (overridden).
+		// 2. There's no xpose pattern -- convertFunc never runs, so
+		// the item in ~defaults should be the real value.
+		defaults: (adjust: 0, xpose: 1, scAccidentals: true),
 		amp: 0.5,
 		postDefaults: Plazy {
 			// this is fairly ridiculous. I want to be able to swap in new parm patterns.
@@ -84,7 +105,9 @@ make: { |name|
 					\bufnum, Pindex(~bufs, Pkey(\bufIndex)),
 					\amp, BPStream(\amp) / Pfunc { |ev| ~fileInfo[ev[\bufIndex]][\peak] },
 					// \rate, Pindex(~fileInfo.collect(_[\rate]), Pkey(\bufIndex)),
-					\rate, Pfunc { |ev| ~fileInfo[ev[\bufIndex]][\rate] },
+					\rate, Pfunc { |ev|
+						~fileInfo[ev[\bufIndex]][\rate] * ev[\xpose].asFloat
+					},
 					\time, Pfunc { |ev|
 						if(ev[\time].isNil) {
 							if(ev[\stacc].notNil and: { ev[\stacc] > 0 }) {
