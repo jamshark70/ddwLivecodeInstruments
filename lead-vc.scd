@@ -8,7 +8,8 @@
 		// -1 because you actually get sidebands around the ratio:
 		// if ratio == 6, you hear harmonics 5 and 7.
 		// To make 7 the top pitch, subtract one.
-		var ratio = Lag.kr((freq / fund).round(1) - 1, freqlag),
+		// var ratio = Lag.kr((freq / fund).round(1) - 1, freqlag),
+		var ratio = (Lag.kr(freq, freqlag) / fund).round(1) - 1,
 		mod = Osc.ar(mbuf, fund * ratio * mDetune * [1, cDetune], 0, index),
 		car = Osc.ar(cbuf, fund * [1, cDetune] * (1 + mod), 0),
 		eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
@@ -24,12 +25,15 @@
 		// -1 because you actually get sidebands around the ratio:
 		// if ratio == 6, you hear harmonics 5 and 7.
 		// To make 7 the top pitch, subtract one and play ratio 6.
-		var cDetuneLow = cDetune.reciprocal, mDetuneLow = mDetune.reciprocal,
-		cDetunes = Array.fill(n, { TExpRand.kr(cDetuneLow, cDetune, t_gate) }),
-		mDetunes = Array.fill(n, { TExpRand.kr(mDetuneLow, mDetune, t_gate) }),
-		ratio = Lag.kr((freq / fund).round(1) - 1, freqlag),
-		mod = Osc.ar(mbuf, Lag.kr(fund * ratio * mDetunes * cDetunes, freqlag), 0, index),
-		car = Osc.ar(cbuf, Lag.kr(fund * cDetune, freqlag) * (1 + mod), 0),
+		// var cDetuneLow = cDetune.reciprocal, mDetuneLow = mDetune.reciprocal,
+		// cDetunes = Array.fill(n, { TExpRand.kr(cDetuneLow, cDetune, t_gate) }),
+		// mDetunes = Array.fill(n, { TExpRand.kr(mDetuneLow, mDetune, t_gate) }),
+		var cDetunes = Array.fill(n, { cDetune ** TRand.kr(-1, 1, t_gate) }),
+		mDetunes = Array.fill(n, { mDetune ** TRand.kr(-1, 1, t_gate) }),
+		// ratio = Lag.kr((freq / fund).round(1) - 1, freqlag),
+		ratio = (Lag.kr(freq, freqlag) / fund).round(1) - 1,
+		mod = Osc.ar(mbuf, /*Lag.kr(*/fund * ratio * mDetunes * cDetunes/*, freqlag)*/, 0, index),
+		car = Osc.ar(cbuf, /*Lag.kr(*/fund * cDetune/*, freqlag)*/ * (1 + mod), 0),
 		eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 		car = BRF.ar(Mix(car), fund, 1, amp);
 		Out.ar(out, Pan2.ar(car, pan, eg));
