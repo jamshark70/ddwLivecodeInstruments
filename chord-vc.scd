@@ -146,7 +146,7 @@ make: { |name|
 	], target: ~target);
 	beats = out.mapGlobal(\beats, nil, 1.5, [0, 50, 3]);
 	if(~autoBeats) {
-		beats.watch.automate { LFDNoise3.kr(LFDNoise3.kr(0.1).exprange(0.8, 7)).range(2, 48) };
+		beats/*.watch*/.automate { LFDNoise3.kr(LFDNoise3.kr(0.1).exprange(0.8, 7)).range(2, 48) };
 	};
 	// out.mapGlobal(\excTime, nil, 0.05, [0.01, 0.2, 3]);
 	out.mapGlobal(\vTimeSens, nil, 0.8, [0, 1]);
