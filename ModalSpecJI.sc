@@ -42,7 +42,10 @@ ModalSpecJI : ModalSpec {
 					refFreq = ji.lastRefFreq;
 					relativeKeys = midi - refKey;
 					octaves = relativeKeys div: 12;
-					result = ji.lastScale.wrapAt(relativeKeys) * (2 ** octaves) * refFreq;
+					// .round: flatted notes may be slightly under the integer note number
+					// causing them to access the double-flatted pitch
+					// assuming here that you want microtonal inflections to come only from the scale
+					result = ji.lastScale.wrapAt(relativeKeys.round) * (2 ** octaves) * refFreq;
 				} {
 					// "BP(%): No ji found, falling back to ET".format(~collIndex.asCompileString).warn;
 					result = midi.midicps;
