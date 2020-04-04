@@ -59,7 +59,7 @@ var initMixers = {
 		};
 
 		if((~longrvbmc.tryPerform(\isRunning) ? false).not) {
-			~longrvbmc = MixerChannel(\rvb, s, 2, 2, level: 0.5.sqrt, outbus: ~hwOut);
+			~longrvbmc = MixerChannel(\longrvb, s, 2, 2, level: 0.5.sqrt, outbus: ~hwOut);
 		};
 
 		~longrvbmc.doWhenReady {
