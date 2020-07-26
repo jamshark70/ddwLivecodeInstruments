@@ -36,6 +36,12 @@ if(Library.at(\clUseBufMode).isNil) {
 				key.envirPut(value);
 			};
 		};
+		temp = vc.env[\parmMap].value(vc);
+		if(temp.notNil) {
+			temp.keysValuesDo { |key, value|
+				~parmMap.put(key, value);
+			};
+		};
 		currentEnvironment
 	} {
 		"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
