@@ -611,7 +611,7 @@ PR(\abstractLiveCode).copy.putAll((
 	// decay is needed to avoid loose attacks at the end of a clip
 	defaults: (attack: 0.001, decay: 0.045, rateMul: 1),
 	postDefaults: Pbind(
-		\rate, Ptempo() / BPStream(\loopTempo) * Pkey(\rateMul),
+		\rate, (Ptempo().trace(prefix: "ptempo: ") / BPStream(\loopTempo).trace(prefix: "looptempo: ")).trace(prefix: "rate: ") * Pkey(\rateMul),
 		\time, BPStream(\time),
 		// try to find one of the clip options that can play thru to the next event
 		// if not, use the earliest (because it will have the most audio data after it)
@@ -657,7 +657,7 @@ gridOffset: 0, // 588,
 gridSamples: 30000, // 58166*0.5,
 clipDur: 0.25,
 clips: (
-	$k:#[0, 2, 8],  // 16th-note indices, etc.
+	$k: #[0, 2, 8],  // 16th-note indices, etc.
 ),
 getLoopTempo: { |sr| sr / ~gridSamples },
 fx: nil,  // symbol --> Func(...)
