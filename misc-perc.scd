@@ -69,7 +69,7 @@ make: { |name|
 						// note: not supporting JI here
 						// to do that, BP's mode should be its own copy of the mode object
 						// that's too much to import, so ET it is
-						mode.cps(note.asFloat) / mode.cps(0)
+						mode.cps(note.asFloat, ev[\scAccidentals]) / mode.cps(0)
 					} {
 						1
 					}
