@@ -319,6 +319,11 @@ PR(\arpeg1).clone {
 	};
 	~asPattern = #{ |inEvent|
 		var	out, argPairs;
+		var eventProto = inEvent[\top].copy
+		// yeah... data pollution...
+		.put(\dur, nil).put(\delta, nil).put(\length, nil)
+		.put(\note, nil).put(\freq, nil)
+		.parent_(nil).proto_(nil);
 		if(~fitFactors.notNil) {
 			inEvent = inEvent.copy.put(\fitnessOverride, ~fitFactors);
 		};
@@ -367,7 +372,7 @@ PR(\arpeg1).clone {
 			\accent, Pseq([inEvent[\top][\accent] ?? { false }, Pn(false, inf)]),
 			\acc, Pkey(\accent).collect(_.asInteger)
 		);
-		out = Pchain(BPStream(\defaults), out);
+		out = Pchain(BPStream(\defaults), out, Pfunc { |ev| ev.proto = eventProto });
 		~asPatternHook.(out) ?? { out };
 	};
 	~superPrepareSequence = ~prepareSequence;
