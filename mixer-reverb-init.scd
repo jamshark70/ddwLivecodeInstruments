@@ -63,15 +63,19 @@ var initMixers = {
 		};
 
 		if((~longrvbmc.tryPerform(\isRunning) ? false).not) {
-			~longrvbmc = MixerChannel(\rvb, s, 2, 2, level: 0.5.sqrt, outbus: ~reverbs);
+			~longrvbmc = MixerChannel(\longrvb, s, 2, 2, level: 0.5.sqrt, outbus: ~reverbs);
 		};
 
 		~longrvbmc.doWhenReady {
 			if(~longrvb.isPlaying.not) {
 				s.makeBundle(s.latency, {
 					if(~useJPVerb == true) {
-						~jpverb = ~longrvbmc.playfx { |outbus, t60 = 6.5, damp = 0.01, size = 3|
-							JPverb.ar(In.ar(outbus, 2), t60, damp, size);
+						~jpverb = ~longrvbmc.playfx { |outbus, t60 = 6.5, damp = 0.01, size = 3,
+							// sidechain settings: default, no effect
+							thresh = 0.15, slopeAbove = 1, amp = 1|
+							var dry = In.ar(outbus, 2);
+							var wet = JPverb.ar(In.ar(outbus, 2), t60, damp, size);
+							Compander.ar(wet, dry, thresh, 1, slopeAbove, clampTime: 0.01, relaxTime: 0.6, mul: amp);
 						};
 					} {
 						~longrvb = ~longrvbmc.playfx(\cll_freeverb2, [mix: 1.0, room: 0.96, damp: 0.1, amp: 1.0]);
