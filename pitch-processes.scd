@@ -459,7 +459,7 @@ make: { |name|
 		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_]));
 	p.defaultParm = \note;
 	p.phrases = IdentityDictionary[
-		\main -> PbindProxy([p.defaultParm, \dur], nil),
+		\main -> PbindProxy([p.defaultParm, \delta, \dur], nil),
 		\rest -> PbindProxy(\dur, Pfuncn { Rest(~clock.beatsPerBar) })
 	];
 	p.phraseDurs = IdentityDictionary[
