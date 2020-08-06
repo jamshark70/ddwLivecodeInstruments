@@ -181,6 +181,7 @@ chuckParms: (
 			~defaults.setDefault(key, value)
 		};
 	},
+	set: `{ |... pairs| ~setDefault.(*pairs) },
 	setVoicerParms: `{ |parms, post| ~defaults.setVoicerParms(parms, post) },
 	ji: `{ ~event[\jiHelper] },
 	ji_: `{ |key|
@@ -449,6 +450,7 @@ make: { |name|
 			~topNote.postDefaults.setDefault(key, value);
 		};
 	};
+	p.set = { |... pairs| ~setDefault.(*pairs) };
 	p.setVoicerParms = { |parms, post|
 		~topNote.postDefaults.setVoicerParms(parms, post);
 		~child.defaults.setVoicerParms(parms, post);
@@ -812,6 +814,7 @@ make: { |name|
 				~defaults.setDefault(key, value)
 			};
 		},
+		set: { |... pairs| ~setDefault.(*pairs) },
 		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
 	PR(\abstractLiveCode).canWrap = false;
