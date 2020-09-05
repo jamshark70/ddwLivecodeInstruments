@@ -217,7 +217,7 @@ SynthDef(\bufGrainFilt, { |start, time, bufnum, pan, rate = 1, amp = 1,
 	var sig;
 	sig = PlayBuf.ar(1, bufnum, rate * BufRateScale.kr(bufnum), 1, start, 0)
 		* EnvGen.kr(Env.linen(attack, time, decay), doneAction:2);
-	sig = RLPF.ar(sig, ffreq, rq);
+	sig = BLowPass/*RLPF*/.ar(sig, ffreq, rq);
 	Out.ar(outbus, Pan2.ar(sig, pan, amp));
 }).add;
 );

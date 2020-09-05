@@ -328,7 +328,7 @@ type: \vc) => Fact(\fmclavVC);
 			feg = EnvGen.kr(Env([0, 1, 0], [fmodAtk, fmodDcy], -4), gate),
 			eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
 			sig = Splay.ar(sig, panWidth, amp, panCenter);
-			sig = RLPF.ar(sig, (ffreq * (1 + (fmodAmt * feg))).clip(20, 20000), rq);
+			sig = BLowPass/*RLPF*/.ar(sig, (ffreq * (1 + (fmodAmt * feg))).clip(20, 20000), rq);
 			Out.ar(out, sig * eg);
 		}).add;
 	};
