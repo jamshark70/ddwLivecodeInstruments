@@ -1,5 +1,5 @@
-SynthDef(\drumDistortion, { |out, ffreq = 18000, rq = 1, mix = -1, preamp = -10|
-	var dry = RLPF.ar(In.ar(out, 2), ffreq, rq),
+SynthDef(\drumDistortion, { |out, ffreq = 18000, rq = 0.5, mix = -1, preamp = -10|
+	var dry = BLowPass.ar(In.ar(out, 2), ffreq, rq),
 	wet = (dry * preamp.dbamp).tanh,
 	dryamp = Amplitude.ar(dry),
 	wetamp = Amplitude.ar(wet),
@@ -265,7 +265,7 @@ make: { |name|
 				~chan = ~drums[0].chan
 			};
 			~ffreqCtl = GenericGlobalControl(\freq, nil, 18000, \freq);
-			~rqCtl = GenericGlobalControl(\rq, nil, 1, \myrq);
+			~rqCtl = GenericGlobalControl(\rq, nil, 0.5, \myrq);
 			~preampCtl = GenericGlobalControl(\preamp, nil, -10, [-20, 40]);
 			~dmixCtl = GenericGlobalControl(\distmix, nil, 1, \bipolar);
 			~dist = ~chan.playfx(\drumDistortion, [
