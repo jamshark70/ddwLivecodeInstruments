@@ -154,11 +154,6 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 		};
 	};
 	distorted = Mix((distorted * (preamp * preTanhAmp)).tanh.clump(2));  // independently distort sinewaves
-	// volume changes with preamp -- compensate by RMS ratio
-	// mean would divide both by the same amount, which cancels out, so omit the mean division
-	preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
-	distAmp = RunningSum.ar(distorted[0].squared, 441).sqrt;
-	ampCorrect = min(1, preDistAmp / distAmp);
 	// slight distortion on original oscillator, for beef
 	// empirically, 12 dB boost = * 4 --> tanh gives a nice spectrum
 	sig = (sig * 4).tanh;
@@ -166,7 +161,13 @@ SynthDef(\distBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fre
 	distorted = HPF.ar(HPF.ar(distorted, hpfreq), hpfreq);
 	sig = XFade2.ar(Mix(sig.clump(2)), distorted, distMix * 2 - 1);
 	sig = RLPF.ar(sig, (Lag.kr(ffreq, freqlag) * feg).clip(20, 20000), rqeg);
-	Out.ar(out, (sig * (eg * amp * ampCorrect)));
+	// volume changes with preamp -- compensate by RMS ratio
+	// mean would divide both by the same amount, which cancels out, so omit the mean division
+	preDistAmp = RunningSum.ar(oscMix.squared, 441).sqrt;
+	distAmp = RunningSum.ar(sig/*distorted*/[0].squared, 441).sqrt;
+	ampCorrect = min(3, abs(preDistAmp / distAmp));
+	sig = (sig * (eg * amp * ampCorrect));
+	Out.ar(out, sig);
 }).add;
 
 (
