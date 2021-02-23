@@ -36,6 +36,12 @@ if(Library.at(\clUseBufMode).isNil) {
 				key.envirPut(value);
 			};
 		};
+		temp = vc.env[\parmMap].value(vc);
+		if(temp.notNil) {
+			temp.keysValuesDo { |key, value|
+				~parmMap.put(key, value);
+			};
+		};
 		currentEnvironment
 	} {
 		"BP(%): VC(%) is dead".format(~collIndex.asCompileString, vc.collIndex.asCompileString).warn;
@@ -175,6 +181,7 @@ chuckParms: (
 			~defaults.setDefault(key, value)
 		};
 	},
+	set: `{ |... pairs| ~setDefault.(*pairs) },
 	setVoicerParms: `{ |parms, post| ~defaults.setVoicerParms(parms, post) },
 	ji: `{ ~event[\jiHelper] },
 	ji_: `{ |key|
@@ -311,6 +318,11 @@ PR(\arpeg1).clone {
 	};
 	~asPattern = #{ |inEvent|
 		var	out, argPairs;
+		var eventProto = inEvent[\top].copy
+		// yeah... data pollution...
+		.put(\dur, nil).put(\delta, nil).put(\length, nil)
+		.put(\note, nil).put(\freq, nil)
+		.parent_(nil).proto_(nil);
 		if(~fitFactors.notNil) {
 			inEvent = inEvent.copy.put(\fitnessOverride, ~fitFactors);
 		};
@@ -359,7 +371,7 @@ PR(\arpeg1).clone {
 			\accent, Pseq([inEvent[\top][\accent] ?? { false }, Pn(false, inf)]),
 			\acc, Pkey(\accent).collect(_.asInteger)
 		);
-		out = Pchain(BPStream(\defaults), out);
+		out = Pchain(BPStream(\defaults), out, Pfunc { |ev| ev.proto = eventProto });
 		~asPatternHook.(out) ?? { out };
 	};
 	~superPrepareSequence = ~prepareSequence;
@@ -438,6 +450,7 @@ make: { |name|
 			~topNote.postDefaults.setDefault(key, value);
 		};
 	};
+	p.set = { |... pairs| ~setDefault.(*pairs) };
 	p.setVoicerParms = { |parms, post|
 		~topNote.postDefaults.setVoicerParms(parms, post);
 		~child.defaults.setVoicerParms(parms, post);
@@ -801,6 +814,7 @@ make: { |name|
 				~defaults.setDefault(key, value)
 			};
 		},
+		set: { |... pairs| ~setDefault.(*pairs) },
 		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
 	));
 	PR(\abstractLiveCode).canWrap = false;

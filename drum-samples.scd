@@ -1,3 +1,47 @@
+SynthDef(\drumDistortion, { |out, mix = -1, preamp = -10|
+	var dry = In.ar(out, 2),
+	wet = (dry * preamp.dbamp).tanh,
+	dryamp = Amplitude.ar(dry),
+	wetamp = Amplitude.ar(wet),
+	ampCorrect = dryamp / max(wetamp, 0.01);  // assuming these will track together?
+	ReplaceOut.ar(out, LinXFade2.ar(dry, wet * ampCorrect, mix));
+}).add;
+
+// helper for multiple kicks
+{ |name|
+	// throws errors if not found
+	var mixer;
+	if(BP.exists(name)) {
+		if(BP(name)[\locut].isNil) {
+			mixer = BP(name).asMixer;
+			BP(name).locut = MultiEQ(mixer.inChannels, \bhipass, 120, 1, 1.414).play(mixer);
+		} {
+			"BP(%) already has a lo-cut filter".format(name.asCompileString).warn;
+		}
+	} {
+		"BP(%) doesn't exist".format(name.asCompileString).warn;
+	};
+} => Func(\locut);
+
+{ |name|
+	var bp;
+	if(BP.exists(name)) {
+		bp = BP(name);
+		if(bp[\preampCtl].notNil) {
+			bp[\preampCtl].value = 21.8;
+		} {
+			"BP(%) has no preamp control".format(name.asCompileString).warn;
+		};
+	} {
+		"BP(%) doesn't exist".format(name.asCompileString).warn;
+	};
+} => Func(\distortDrum);
+
+{ |name|
+	\locut.eval(name);
+	\distortDrum.eval(name);
+} => Func(\dhiDrum);
+
 { |... id|
 	var spec;
 	if(id.size > 0) {
@@ -220,6 +264,16 @@ make: { |name|
 			} {
 				~chan = ~drums[0].chan
 			};
+			~preampCtl = GenericGlobalControl(\preamp, nil, -10, [-20, 40]);
+			~dmixCtl = GenericGlobalControl(\distmix, nil, 1, \bipolar);
+			~dist = ~chan.playfx(\drumDistortion, [
+				preamp: ~preampCtl.asMap,
+				mix: ~dmixCtl.asMap
+			]);
+			~chan.doWhenReady {
+				~dist.moveToTail(~chan.effectgroup);
+			};
+			~globalControls = [~preampCtl, ~dmixCtl];
 			// version safety: new instruments + old cll won't know how to do this
 			if(~autoGui == true and: { PR(\clMake).v[\autoAssignMixer].notNil }) {
 				PR(\clMake).autoAssignMixer(~chan);
@@ -227,7 +281,7 @@ make: { |name|
 		},
 		userfree: {
 			~drums.do { |thing| thing[\buf].free; thing[\chan].free };
-			~bpsubmix.free;
+			[~bpsubmix, ~preampCtl, ~dmixCtl].free;
 		},
 		defaultParm: \ampBuf,
 		parmMap: (),
@@ -562,12 +616,23 @@ make: { |name|
 (
 PR(\abstractLiveCode).copy.putAll((
 	event: (eventKey: \singleSynthPlayer),
+	tempoRatio: 1,  // 2 = twice as fast
 	userprep: {
 		~chan = MixerChannel(~collIndex, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 			chan.newPostSend(~rvbmc, ~rvbLevel);
 			~fx.eval;
 		});
 		~event[\chan] = ~chan;
+		~preampCtl = GenericGlobalControl(\preamp, nil, -10, [-20, 40]);
+		~dmixCtl = GenericGlobalControl(\distmix, nil, 1, \bipolar);
+		~globalControls = [~preampCtl, ~dmixCtl];
+		~dist = ~chan.playfx(\drumDistortion, [
+			preamp: ~preampCtl.asMap,
+			mix: ~dmixCtl.asMap
+		]);
+		~chan.doWhenReady {
+			~dist.moveToTail(~chan.effectgroup);
+		};
 		~buf = Buffer.readAndQuery(s, ~path, completionFunc: inEnvir { |buf|
 			// currentEnvironment.postln;
 			~loopTempo = ~getLoopTempo.(buf.sampleRate);
@@ -582,9 +647,15 @@ PR(\abstractLiveCode).copy.putAll((
 		~clips = ~clips.collect { |indices|
 			~gridOffset + ((~gridSamples * ~clipDur) * indices)
 		};
+		["12345678", "lrcgfyp", "snthdiu"].do { |str, i|
+			i = i + 1;
+			str.do { |ch, j|
+				~parmMap[\rate][ch] = (j+1) / i;
+			};
+		};
 	},
 	userfree: {
-		[~chan, ~buf].free;
+		[~chan, ~buf, ~preampCtl, ~dmixCtl].free;
 	},
 	defaultParm: \clip,
 	parmMap: (
@@ -605,17 +676,20 @@ PR(\abstractLiveCode).copy.putAll((
 					nil
 				}
 			}
-		)
+		),
+		rate: (alias: \rateScale)
 	),
 	time: Pkey(\dur) / Ptempo() - Pkey(\attack) - Pkey(\decay),
 	// decay is needed to avoid loose attacks at the end of a clip
-	defaults: (attack: 0.001, decay: 0.045, rateMul: 1),
+	defaults: (attack: 0.001, decay: 0.045, rateMul: 1, rateScale: 1),
 	postDefaults: Pbind(
-		\rate, Ptempo() / BPStream(\loopTempo) * Pkey(\rateMul),
-		\time, BPStream(\time),
+		// \tempoRatio, BPStream(\tempoRatio),
+		\rate, Ptempo() / BPStream(\loopTempo) * Pkey(\rateMul) * Pkey(\rateScale),
+		\time, BPStream(\time) /*/ Pkey(\tempoRatio)*/,
 		// try to find one of the clip options that can play thru to the next event
 		// if not, use the earliest (because it will have the most audio data after it)
 		\start, Pfunc { |ev|
+			// tempoRatio already factored into rate, no need to do anything extra
 			var samples = ev[\time] * ~buf.sampleRate * ev[\rate].abs,
 			valid = ev[\start].select { |a| (~bufFrames - a) >= samples },
 			out = if(valid.size > 0) {
@@ -651,7 +725,7 @@ PR(\clBreak).clone {
 (
 keys: #[master, shortrvbmc],
 initLevel: -12.dbamp,
-rvbLevel: -6.dbamp,
+rvbLevel: -9.dbamp,
 path: nil,
 gridOffset: 0, // 588,
 gridSamples: 30000, // 58166*0.5,
@@ -660,9 +734,13 @@ clips: (
 	$k:#[0, 2, 8],  // 16th-note indices, etc.
 ),
 getLoopTempo: { |sr| sr / ~gridSamples },
-fx: nil,  // symbol --> Func(...)
+fx: nil,  // symbol --> Func(...) or { ... }
 pr: \clBreak,
+// tempoRatio: 1,
 make: { |name|
+	if(~available.notNil and: { ~available[~brk].notNil }) {
+		currentEnvironment.putAll(~available[~brk]);
+	};
 	if(~path.isNil) {
 		Error("Fact(\\breakBP) => BP(%): Must specify path, gridSamples, clips".format(name)).throw;
 	};
@@ -678,7 +756,8 @@ make: { |name|
 		clipDur: ~clipDur,
 		clips: ~clips,
 		getLoopTempo: ~getLoopTempo,
-		fx: ~fx
+		fx: ~fx //,
+		// tempoRatio: ~tempoRatio
 	));
 },
 type: \bp) => Fact(\breakBP);

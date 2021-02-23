@@ -68,14 +68,13 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 	ratios = #[1, 2, 3, 4, 5], amps = #[1, 0.5, 0.333, 0.25, 0.2],
 	excFreq = 50, beats = 0, excAtk = 0.01, excDcy = 0.05,
 	// not really "gate" -- voicer's velocity interface
-	pan = 0, width = 0, gate = 0.1, vsens = 0.5, vTimeSens = 0.5|
+	pan = 0, width = 0, gate = 0.1, vsens = 0.5, vTimeSens = 0.5, hpfMix = 0|
 	var gateLatch = Latch.kr(gate, gate),
 	realAmp = amp * Sensitivity.kr(1, gateLatch, vsens),
 	exc = COsc.ar(bufnum, excFreq, beats, realAmp) * EnvGen.ar(Env.perc(excAtk, excDcy, curve: 0)),
 	panShuf = Dshuf((0 .. ratios.size-1)),
 	initTrig = Impulse.kr(0),
-	panLeft, panIncr, sig;
-	var debugRingz = Array(ratios.size), debugCheck = Array(ratios.size);
+	panLeft, panIncr, sig, hpf;
 	width = min(width, 1 - abs(pan));
 	panIncr = width / (ratios.size-1);
 	panLeft = pan - width;
@@ -83,12 +82,10 @@ SynthDef(\klanky, { |out, bufnum, freq = 440, amp = 0.1, time = 0.1,
 	sig = Mix(ratios.collect { |ratio, i|
 		var panIndex = Demand.kr(initTrig, 0, panShuf),
 		ringz = Ringz.ar(exc, freq * ratio, time, amps[i]);
-		debugRingz.add(ringz);
-		debugCheck.add(CheckBadValues.ar(ringz) + (8 * (ringz.abs > 2)));
 		Pan2.ar(ringz /*- Ringz.ar(exc, freq * ratio, 0.01, amps[i])*/, panLeft + (panIndex * panIncr));
 	});
-	// debugRingz.poll(debugCheck);
-	// sig = sig * EnvGen.ar(Env([0, 0, 1], [ControlDur.ir * 12, 0.01]));
+	hpf = HPF.ar(HPF.ar(sig, freq), freq);
+	sig = (hpf - sig) * hpfMix + sig;
 	DetectSilence.ar(sig.sum, 0.001, doneAction: 2);
 	Out.ar(out, sig);
 }).add;
@@ -149,13 +146,14 @@ make: { |name|
 	], target: ~target);
 	beats = out.mapGlobal(\beats, nil, 1.5, [0, 50, 3]);
 	if(~autoBeats) {
-		beats.watch.automate { LFDNoise3.kr(LFDNoise3.kr(0.1).exprange(0.8, 7)).range(2, 48) };
+		beats/*.watch*/.automate { LFDNoise3.kr(LFDNoise3.kr(0.1).exprange(0.8, 7)).range(2, 48) };
 	};
 	// out.mapGlobal(\excTime, nil, 0.05, [0.01, 0.2, 3]);
 	out.mapGlobal(\vTimeSens, nil, 0.8, [0, 1]);
 	// out.mapGlobal(\width, nil, 0, [0, 1]);
 	out.mapGlobal(\time, nil, 0.1, [0.05, 2, \exp]);
 	out.mapGlobal(\pRandWidth, nil, 0, [0, 0.4]);
+	out.mapGlobal(\hpfMix, nil, 1, [0, 1]);
 	defer(inEnvir { \vcToDefaultBP.eval(name, ~defaultBP) }, 0.25);
 	out
 },
@@ -167,10 +165,10 @@ type: \vc, defaultName: \klc/*, defaultBP: \ch*/) => Fact(\klankVC);
 (
 SynthDef(\fmpad, { |out, gate = 1, freq = 440, freqlag = 0.08,
 	index = 1, ratio = 1, acc = 0, accMul = 3, mbuf, cbuf,
-	detun = 1.01, t_rerand = 1,
+	detun = 1.014, t_rerand = 1,
 	panCenter = 0, panWidth = 0.6, amp = 0.5,
 	atk = 0.08, dcy = 0.3, sus = 0.6, rel = 1, modAmt = 0, modDcy = 0.5|
-	var n = 8,
+	var n = 12,
 	r_detun = detun.reciprocal,
 	detunes = Array.fill(n, { TRand.kr(0, 1, t_rerand).linexp(0, 1, r_detun, detun) }),
 	// acc = 0: modAmt
@@ -200,6 +198,7 @@ make: { |name|
 	var out;
 	~target = MixerChannel(name, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 		chan.newPostSend(~rvbmc, ~rvbLevel);
+		~chorus = chan.playfx(Instr("busfx.chorus2"), [0, 2, 2, 4, 0.001, 0.044366873309786, 0.00048185826823436, 1.0163976232202, 0.5080218046913]);
 	});
 
 	~mbuf = Buffer.alloc(s, 2048, 1, { |buf| buf.sine1Msg(~modHrm.value) });
