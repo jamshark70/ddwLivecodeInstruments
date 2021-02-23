@@ -72,7 +72,7 @@ SynthDef(\pulseBass, { |out, freq = 440, gate = 1, t_gate = 1, freqlag = 0.1, fr
 	sig = Mix(Pulse.ar(Lag.kr(freq * fRand * 0.5, freqlag), widths)),  // randomizing on slur is lagged too
 	feg = EnvGen.kr(Env.perc(0.01, fDecay), gate) * fegAmt + 1,
 	eg = EnvGen.kr(Env.adsr(atk, dcy, sus, rel), gate, doneAction: 2);
-	sig = RLPF.ar(sig, (Lag.kr(ffreq, freqlag) * feg).clip(20, 20000), rq);
+	sig = BLowPass/*RLPF*/.ar(sig, (Lag.kr(ffreq, freqlag) * feg).clip(20, 20000), rq);
 	preamp = preamp.dbamp;
 	sig = (sig * preamp).tanh / (preamp ** 0.6);
 	Out.ar(out, (sig * (eg * amp)).dup);  // bass, don't pan

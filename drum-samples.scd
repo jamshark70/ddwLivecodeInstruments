@@ -1,5 +1,5 @@
-SynthDef(\drumDistortion, { |out, mix = -1, preamp = -10|
-	var dry = In.ar(out, 2),
+SynthDef(\drumDistortion, { |out, ffreq = 18000, rq = 0.5, mix = -1, preamp = -10|
+	var dry = BLowPass.ar(In.ar(out, 2), ffreq, rq),
 	wet = (dry * preamp.dbamp).tanh,
 	dryamp = Amplitude.ar(dry),
 	wetamp = Amplitude.ar(wet),
@@ -264,16 +264,20 @@ make: { |name|
 			} {
 				~chan = ~drums[0].chan
 			};
+			~ffreqCtl = GenericGlobalControl(\freq, nil, 18000, \freq);
+			~rqCtl = GenericGlobalControl(\rq, nil, 0.5, \myrq);
 			~preampCtl = GenericGlobalControl(\preamp, nil, -10, [-20, 40]);
 			~dmixCtl = GenericGlobalControl(\distmix, nil, 1, \bipolar);
 			~dist = ~chan.playfx(\drumDistortion, [
+				ffreq: ~ffreqCtl.asMap,
+				rq: ~rqCtl.asMap,
 				preamp: ~preampCtl.asMap,
 				mix: ~dmixCtl.asMap
 			]);
 			~chan.doWhenReady {
 				~dist.moveToTail(~chan.effectgroup);
 			};
-			~globalControls = [~preampCtl, ~dmixCtl];
+			~globalControls = [~ffreqCtl, ~rqCtl, ~preampCtl, ~dmixCtl];
 			// version safety: new instruments + old cll won't know how to do this
 			if(~autoGui == true and: { PR(\clMake).v[\autoAssignMixer].notNil }) {
 				PR(\clMake).autoAssignMixer(~chan);
@@ -281,7 +285,8 @@ make: { |name|
 		},
 		userfree: {
 			~drums.do { |thing| thing[\buf].free; thing[\chan].free };
-			[~bpsubmix, ~preampCtl, ~dmixCtl].free;
+			~bpsubmix.free;
+			~globalControls.free;
 		},
 		defaultParm: \ampBuf,
 		parmMap: (),
@@ -623,10 +628,14 @@ PR(\abstractLiveCode).copy.putAll((
 			~fx.eval;
 		});
 		~event[\chan] = ~chan;
+		~ffreqCtl = GenericGlobalControl(\freq, nil, 18000, \freq);
+		~rqCtl = GenericGlobalControl(\rq, nil, 1, \myrq);
 		~preampCtl = GenericGlobalControl(\preamp, nil, -10, [-20, 40]);
 		~dmixCtl = GenericGlobalControl(\distmix, nil, 1, \bipolar);
-		~globalControls = [~preampCtl, ~dmixCtl];
+		~globalControls = [~ffreqCtl, ~rqCtl, ~preampCtl, ~dmixCtl];
 		~dist = ~chan.playfx(\drumDistortion, [
+			ffreq: ~ffreqCtl.asMap,
+			rq: ~rqCtl.asMap,
 			preamp: ~preampCtl.asMap,
 			mix: ~dmixCtl.asMap
 		]);
@@ -655,7 +664,8 @@ PR(\abstractLiveCode).copy.putAll((
 		};
 	},
 	userfree: {
-		[~chan, ~buf, ~preampCtl, ~dmixCtl].free;
+		[~chan, ~buf].free;
+		~globalControls.free;
 	},
 	defaultParm: \clip,
 	parmMap: (
@@ -684,7 +694,7 @@ PR(\abstractLiveCode).copy.putAll((
 	defaults: (attack: 0.001, decay: 0.045, rateMul: 1, rateScale: 1),
 	postDefaults: Pbind(
 		// \tempoRatio, BPStream(\tempoRatio),
-		\rate, Ptempo() / BPStream(\loopTempo) * Pkey(\rateMul) * Pkey(\rateScale),
+		\rate, Ptempo() / Plazy { BPStream(\loopTempo) } * Pkey(\rateMul) * Pkey(\rateScale),
 		\time, BPStream(\time) /*/ Pkey(\tempoRatio)*/,
 		// try to find one of the clip options that can play thru to the next event
 		// if not, use the earliest (because it will have the most audio data after it)
