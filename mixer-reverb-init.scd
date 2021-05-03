@@ -24,6 +24,7 @@ var initMixers = {
 
 		if((~hwOut.tryPerform(\isRunning) ? false).not) {
 			~hwOut = MixerChannel(\hwOut, s, 2, 2, level: 2.sqrt);  // +3 dB to offset Balance2
+			~hwOut.setControl(\clip, 6);
 		};
 
 		if((~master.tryPerform(\isRunning) ? false).not) {
