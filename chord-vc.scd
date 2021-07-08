@@ -293,7 +293,7 @@ SynthDef(\fmclav, { |out, gate = 1, amp = 0.1, cbuf, mbuf,
 keys: #[master, rvbmc],
 initLevel: -22.dbamp, // -19.dbamp,
 rvbLevel: -6.dbamp,
-argPairs: [amp: 0.03],  // this is a bloody loud synth
+argPairs: [amp: 0.09],  // this is a bloody loud synth
 modHrm: (1..4).reciprocal,
 carHrm: #[1],
 fxFunc: nil,
