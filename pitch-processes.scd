@@ -141,6 +141,18 @@ chuckParms: (
 	// and one can corrupt another
 	parmMap: { (
 		degree: (isPitch: true),
+		xpose: (
+			isPitch: true,
+			convertFunc: { |note, ev|
+				var mode = ev[\mode].asMode;
+				if(note.isRest.not and: { note.isKindOf(SequenceNote) and: { ev.isRest.not } }) {
+					(mode.cpsOfKey(note.asFloat.unmapMode(mode, true)) / mode.cpsOfKey(0))
+				} {
+					1
+				}
+			},
+			alias: \harmonic
+		),
 		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
 	) },
 	defaults: { PR(\clDefaults).copy.prep((
@@ -155,10 +167,11 @@ chuckParms: (
 			var mode, bassID;
 			if(ev.isRest.not) {
 				mode = ev[\mode].asMode;
-				ev[\freq] = mode.cpsOfKey(
+				ev[\noteFrequency] = mode.cpsOfKey(
 					(ev[\degree] + (ev[\octave] * mode.scale.size))
 					.unmapMode(mode, ev[\scAccidentals])
 				);
+				ev[\freq] = { ~noteFrequency * ~harmonic };
 				if(~bassID.notNil) {
 					Library.put(~bassID, ev[\degree] % mode.scale.size);
 					bassID = ~bassID;
@@ -469,6 +482,13 @@ make: { |name|
 	p.phraseStrings = MultiLevelIdentityDictionary.new;
 	p.parmMap = (
 		note: (isPitch: true),
+		xpose: (isPitch: true, convertFunc: { |note, ev|
+			// *probably* note comes first
+			if(ev[\note].notNil and: { note.isRest.not }) {
+				ev[\note] = ev[\note] + note.asFloat
+			};
+			note  // save, if 'note' comes later, apply it then
+		}),
 		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
 	);
 	p.phraseSeq = \main;
@@ -520,12 +540,16 @@ make: { |name|
 							Pbindf(
 								BPStream(\postDefaults),
 								\note, Pkey(\note) + (7 * Pkey(\octave)),
+								\note, Pfunc { |ev|
+									ev[\note] + (7 * ev[\octave])
+									+ (ev[\xpose] ?? { 0 })
+								},
 								// FFS, some bits downstream need it to be 'note';
 								// other bits downstream need it to be 'freq';
 								// I was a really bad coder back then, wasn't I?
 								\freq, Pfunc { |ev|
 									if(ev[\note].isKindOf(SequenceNote)) {
-										ev[\note].freq
+										ev[\note].freq + (ev[\xpose] ?? { 0 })
 									} {
 										ev[\note]
 									}
