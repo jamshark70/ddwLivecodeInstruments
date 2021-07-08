@@ -492,7 +492,7 @@ make: { |name|
 			if(ev[\note].notNil and: { note.isRest.not }) {
 				ev[\note] = ev[\note] + note.asFloat
 			};
-			note  // save, if 'note' comes later, apply it then
+			note.asFloat  // save, if 'note' comes later, apply it then
 		}),
 		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
 	);
@@ -545,7 +545,6 @@ make: { |name|
 							Pfunc { |ev| ev.put(\length, 0.01).put(\delta, Rest(ev[\dur])) },
 							Pbindf(
 								BPStream(\postDefaults),
-								\note, Pkey(\note) + (7 * Pkey(\octave)),
 								\note, Pfunc { |ev|
 									ev[\note] + (7 * ev[\octave])
 									+ (ev[\xpose] ?? { 0 })
