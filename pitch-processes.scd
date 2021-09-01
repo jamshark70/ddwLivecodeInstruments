@@ -230,7 +230,8 @@ chuckParms: (
 			~modeWatcher.remove;
 		});
 		currentEnvironment
-	}
+	},
+	preset: `{ |presetName| \preset.eval(presetName, ~collIndex) }
 ),
 make: { |name|
 	var leadTime = ~leadTime, parms;
@@ -674,6 +675,7 @@ make: { |name|
 			ev
 		};
 	};
+	p[\preset] = { |presetName| \preset.eval(presetName, ~collIndex) };
 	// rests are now inside topNote. Need to be aware of the clock.
 	p['clock_'] = { |clock|
 		~clock = clock;
@@ -838,7 +840,8 @@ make: { |name|
 			};
 		},
 		set: { |... pairs| ~setDefault.(*pairs) },
-		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) }
+		setVoicerParms: { |parms, post| ~defaults.setVoicerParms(parms, post) },
+		preset: { |presetName| \preset.eval(presetName, ~collIndex) }
 	));
 	PR(\abstractLiveCode).canWrap = false;
 	BP(name).import((chTop: \acceptMIDIBuf));
