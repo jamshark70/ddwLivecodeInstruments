@@ -305,12 +305,24 @@ make: { |name|
 				)
 			)
 		},
-		postDefaults: Prout { |inEvent|
-			var bufIndex, event, postDefaults, delta, indices;
+		initDrumSelector: {
 			~drumSelector = Pswitch1(
-				~drums.collect { |thing| thing[\postDefaults] ?? { Pbind.new } },
+				~drums.collect { |thing|
+					var pd = thing[\postDefaults];
+					if(pd.notNil) {
+						if(pd.size > 0 and: { pd.any(_.isPattern) }) {
+							Pbind(*(pd.asKeyValuePairs));
+						} {
+							pd
+						}
+					} { Pbind.new }
+				},
 				Pkey(\bufIndex)
 			).asStream;
+		},
+		postDefaults: Prout { |inEvent|
+			var bufIndex, event, postDefaults, delta, indices;
+			~initDrumSelector.();
 			~makeStreamForKey.(\commonParams);
 			loop {
 				if(inEvent[\bufIndex].size == 0) {
@@ -414,6 +426,24 @@ make: { |name|
 		},
 		shouldNotIndexPerDrum: { |parm, event, map(~parmMap[parm])|
 			(map.tryPerform(\at, \fromDrum) ?? { false }).not or: { ~reservedKeys.includes(event) }
+		},
+		// either /drum(set(\name, value)) to apply to all drums
+		// or /drum(set(0, \name, value)) for a specific drum by index
+		set: { |... pairs|
+			var index;
+			if(pairs[0].isNumber) {
+				// returns first item *and* drops it out of the array
+				index = [pairs.removeAt(0)];
+			} {
+				index = (0 .. ~drums.size-1);
+			};
+			pairs = pairs.asDict(class: IdentityDictionary);
+			index.do { |i|
+				~drums[i][\postDefaults].putAll(pairs);
+			};
+			// especially because some may have switched to patterns
+			~initDrumSelector.();
+			currentEnvironment
 		},
 		reservedKeys: #[isPitch, alias, fromDrum]
 	));
