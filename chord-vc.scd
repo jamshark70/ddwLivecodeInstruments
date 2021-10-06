@@ -282,11 +282,12 @@ SynthDef(\fmclav, { |out, gate = 1, amp = 0.1, cbuf, mbuf,
 	modEg = EnvGen.kr(Env.perc(0.01, modDcy)) * (min(maxAmt, modAmt) * ((acc * accMul) + 1)) + 1,
 	detunedFreqs = detunes * Lag.kr(freq, freqlag),
 	mod = Osc.ar(mbuf, detunedFreqs * ratioSpread, 0, index * modEg),
-	car = Osc.ar(cbuf, detunedFreqs * (1 + mod)),
+	// car = Osc.ar(cbuf, detunedFreqs * (1 + mod)),
+	car = Osc.ar(cbuf, mod * detunedFreqs + detunedFreqs),  // --> MulAdd
 	eg = EnvGen.kr(Env([0, 1, sus, 0], [atk, dcy, rel], -2), doneAction: 2),
 	earlyRelease = EnvGen.kr(Env.asr(0, 1, 0.02), gate + 0.001, doneAction: 2);
 	car = Splay.ar(car, width, amp, panCenter);
-	Out.ar(out, car * eg);
+	Out.ar(out, car * (eg * earlyRelease));
 }).add;
 
 (
