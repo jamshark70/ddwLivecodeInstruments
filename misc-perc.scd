@@ -34,8 +34,20 @@ make: { |name|
 					~sets.keys.as(Array).sort
 				)).throw;
 			};
+
+			~ffreqCtl = GenericGlobalControl(\ffreq, nil, 18000, \freq);
+			~rqCtl = GenericGlobalControl(\rq, nil, 1, \myrq);
+			~globalControls = [~ffreqCtl, ~rqCtl];
+
 			~chan = MixerChannel(~collIndex, s, 2, 2, ~initLevel, outbus: ~master, completionFunc: { |chan|
 				chan.newPostSend(~rvbmc, ~rvbLevel);
+				~filter = chan.playfx({ |out, ffreq, rq|
+					BLowPass.ar(
+						In.ar(out, 2),
+						Lag.kr(ffreq, 0.08),
+						Lag.kr(rq, 0.08)
+					)
+				}, [ffreq: ~ffreqCtl.asMap, rq: ~rqCtl.asMap]);
 			});
 			~event[\chan] = ~chan;
 			~fileInfo = ~checkFiles.(~bufPaths);
@@ -57,6 +69,7 @@ make: { |name|
 		},
 		userfree: {
 			[~chan, ~bufs].free;
+			~globalControls.free;
 		},
 		defaultParm: \buf,
 		parmMap: (
