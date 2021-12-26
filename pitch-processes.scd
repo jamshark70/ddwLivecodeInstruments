@@ -249,6 +249,8 @@ make: { |name|
 	BP(name).mode = ~mode;
 	// optionally: /make(melBP:name(ji:\jiHelperKey)) (just intonation)
 	if(~ji.notNil) { BP(name).ji = ~ji };
+	// hm, there's no 'prep' so apply layer here
+	BP(name).event[\layerID] = UniqueID.next;
 	BP(name)
 }, type: \bp) => Fact(\melBP);
 
@@ -684,6 +686,8 @@ make: { |name|
 	};
 	TempoClock.default => p;
 	Mode(mode) => p;
+	p.event.layerID = UniqueID.next;
+	p.child.event.layerID = p.event.layerID;
 	if(~ji.notNil) { p.ji = ~ji };
 	p
 }, type: \bp, defaultName: \ch) => Fact(\chordBP);
@@ -708,7 +712,10 @@ make: { |name|
 	};
 	PR(\abstractLiveCode).canWrap = true;
 	PR(\abstractLiveCode).chuck(BP(name), nil, (
-		event: (eventKey: \defaultPassRests, type: \voicerArtic, scAccidentals: true),
+		event: (
+			eventKey: \defaultPassRests, type: \voicerArtic, scAccidentals: true,
+			layerID: UniqueID.next
+		),
 		userprep: {
 			~parmMap[\chIndex] = (isPitch: true);
 			~parmMap[\ch] = (alias: \chord);
