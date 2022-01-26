@@ -444,8 +444,11 @@ make: { |name|
 		~topNote.postDefaults.setVoicerParms(parms, post);
 		~child.defaults.setVoicerParms(parms, post);
 	};
-	p.v.import((abstractLiveCode: #[setPattern, valueForParm, valueIsRest, parmIsPitch,
-		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_]));
+	p.v.import((abstractLiveCode: #[
+		setPattern, valueForParm, valueIsRest, parmIsPitch, parmIsDefault,
+		getParmHandler, fixParmMap,
+		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_
+	]));
 	p.defaultParm = \note;
 	p.phrases = IdentityDictionary[
 		\main -> PbindProxy([p.defaultParm, \dur], nil),
@@ -460,6 +463,7 @@ make: { |name|
 		note: (isPitch: true),
 		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
 	);
+	p.fixParmMap;
 	p.phraseSeq = \main;
 	p.makeStreamForKey(\phraseSeq);
 	p.topNote = Proto {
