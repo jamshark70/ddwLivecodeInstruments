@@ -548,7 +548,6 @@ make: { |name|
 								BPStream(\postDefaults),
 								\note, Pfunc { |ev|
 									ev[\note] + (7 * ev[\octave])
-									+ (ev[\xpose] ?? { 0 })
 								},
 								// FFS, some bits downstream need it to be 'note';
 								// other bits downstream need it to be 'freq';
