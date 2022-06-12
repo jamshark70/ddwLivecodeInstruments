@@ -495,9 +495,13 @@ make: { |name|
 			};
 			note.asFloat  // save, if 'note' comes later, apply it then
 		}),
-		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/)
+		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/),
+		newChord: ($-: true, $.: false, default: $.)
 	);
 	p.fixParmMap;
+	// unfortunately this has to be stashed in the event prototype
+	// because \clDefaults evaluates after user patterns, thus overwrites
+	p.event[\newChord] = false;
 	p.phraseSeq = \main;
 	p.makeStreamForKey(\phraseSeq);
 	p.topNote = Proto {
@@ -604,7 +608,7 @@ make: { |name|
 			firstArg.(
 				ev[\top][\note] != lastTop,
 				lastTop = ev[\top][\note]
-			)
+			) or: { ev[\top][\newChord] }
 		})
 	};
 	p.bassID = ~bassID;
@@ -892,7 +896,7 @@ type: \bp) => Fact(\arpegBP);
 	};
 };
 
-Mode(\cmaj) => Mode(\default);
+if(Mode.exists(\default).not) { Mode(\cmaj) => Mode(\default) };
 
 if(MBM.exists(0).not) {
 	MIDIBufManager(TempoClock.default, nil) => MBM.prNew(0);
