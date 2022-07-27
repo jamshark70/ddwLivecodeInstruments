@@ -85,7 +85,9 @@ var initMixers = {
 			};
 		};
 
-		NotificationCenter.notify(\lcInstrMixers, \mixersReady);
+		~longrvbmc.queueBundle({
+			NotificationCenter.notify(\lcInstrMixers, \mixersReady);
+		});
 	}.fork(SystemClock);
 
 	// init once only
