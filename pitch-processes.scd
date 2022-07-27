@@ -496,12 +496,12 @@ make: { |name|
 			note.asFloat  // save, if 'note' comes later, apply it then
 		}),
 		acc: ($>: 1, $-: 0, $.: 0, default: $-/*, alias: \accent*/),
-		newChord: ($-: true, $.: false, default: $.)
+		newChord: ($-: \new, $=: \hold, $.: \plane, default: $=)
 	);
 	p.fixParmMap;
 	// unfortunately this has to be stashed in the event prototype
 	// because \clDefaults evaluates after user patterns, thus overwrites
-	p.event[\newChord] = false;
+	p.event[\newChord] = \hold;
 	p.phraseSeq = \main;
 	p.makeStreamForKey(\phraseSeq);
 	p.topNote = Proto {
@@ -605,10 +605,15 @@ make: { |name|
 	p.child.makeChordPattern = {
 		var lastTop = 0, firstArg = { |val| val };
 		Pclutch(Pxrand(~chords, inf), Pfunc { |ev|
-			firstArg.(
-				ev[\top][\note] != lastTop,
-				lastTop = ev[\top][\note]
-			) or: { ev[\top][\newChord] }
+			var newChord = ev[\top][\newChord];
+			newChord == \new or: {  // 'or': \new *always* forces new chord
+				newChord == \hold and: {  // \hold *might* go new; \plane *never* does
+					firstArg.(
+						ev[\top][\note] != lastTop,
+						lastTop = ev[\top][\note]
+					)
+				}
+			}
 		})
 	};
 	p.bassID = ~bassID;
