@@ -310,12 +310,15 @@ make: { |name|
 				~drums.collect { |thing|
 					var pd = thing[\postDefaults];
 					if(pd.notNil) {
-						if(pd.size > 0 and: { pd.any(_.isPattern) }) {
-							Pbind(*(pd.asKeyValuePairs));
-						} {
-							pd
-						}
-					} { Pbind.new }
+						Pchain(
+							thing[\setParms],
+							if(pd.size > 0 and: { pd.any(_.isPattern) }) {
+								Pbind(*(pd.asKeyValuePairs));
+							} {
+								pd
+							}
+						)
+					} { thing[\setParms] }
 				},
 				Pkey(\bufIndex)
 			).asStream;
@@ -382,6 +385,7 @@ make: { |name|
 					chan: chan,
 					start: thing[\start] ? 0,
 					postDefaults: thing[\postDefaults],
+					setParms: PbindProxy.new.quant_(0)
 				);
 				if(thing[\extras].isKindOf(Dictionary)) { out.putAll(thing[\extras]) };
 				out
@@ -437,12 +441,9 @@ make: { |name|
 			} {
 				index = (0 .. ~drums.size-1);
 			};
-			pairs = pairs.asDict(class: IdentityDictionary);
 			index.do { |i|
-				~drums[i][\postDefaults].putAll(pairs);
+				~drums[i][\setParms].set(*pairs);
 			};
-			// especially because some may have switched to patterns
-			~initDrumSelector.();
 			currentEnvironment
 		},
 		reservedKeys: #[isPitch, alias, fromDrum]
