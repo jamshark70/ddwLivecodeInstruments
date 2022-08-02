@@ -474,7 +474,8 @@ make: { |name|
 	p.v.import((abstractLiveCode: #[
 		setPattern, valueForParm, valueIsRest, parmIsPitch, parmIsDefault,
 		getParmHandler, fixParmMap,
-		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_
+		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_,
+		preset, presets_, printPreset
 	]));
 	p.defaultParm = \note;
 	p.phrases = IdentityDictionary[
