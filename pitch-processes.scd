@@ -473,7 +473,7 @@ make: { |name|
 	};
 	p.v.import((abstractLiveCode: #[
 		setPattern, valueForParm, valueIsRest, parmIsPitch, parmIsDefault,
-		getParmHandler, fixParmMap,
+		getParmHandler, fixParmMap, defaultParmMaps, addPitchConversion,
 		beatsPerBar, setPhraseDur, phraseStringAt, prSetPhraseString, phraseSeq_, swing_,
 		preset, presets_, printPreset
 	]));
